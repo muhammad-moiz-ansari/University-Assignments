@@ -2,6 +2,7 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <pthread.h>
 #include <sched.h>
 #include <sstream>
 #include <string>
@@ -76,8 +77,24 @@ void parseCSV(vector<Record> &data, string filename) {
   }
 }
 
+// For pinning thread to a specific core
+void pin_thread_to_core(int core_id) {
+  cpu_set_t cpuset;
+  CPU_ZERO(&cpuset);
+  CPU_SET(core_id, &cpuset);
+
+  pthread_t current_thread = pthread_self();
+  if (pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset) != 0) {
+    cout << "Error: Could not pin thread " << core_id << endl;
+  }
+}
+
 void *regression_model(void *arg) {
   ThreadData *tdata = (ThreadData *)arg;
+
+  // Pin Thread
+  int num_cores = sysconf(_SC_NPROCESSORS_ONLN); // Total cores (8)
+  pin_thread_to_core(tdata->tid % num_cores);
 
   long start_ind = tdata->start_ind;
   long end_ind = tdata->end_ind;
@@ -129,13 +146,13 @@ int main() {
   for (int k = 1; k <= 8; k = k * 2) {
     int num_threads = k;
     vector<double> speedups;
-
     for (int trial = 1; trial <= num_trials; ++trial) {
       res.PRED_POS = 0;
       res.TP = 0;
       res.FP = 0;
       res.TN = 0;
       res.FN = 0;
+
       // ========== START TIMER ==========
       clock_gettime(CLOCK_MONOTONIC, &start);
       // =================================
@@ -187,7 +204,7 @@ int main() {
 
       // Print to CSV
       // Format: task, version, threads, chunk, trial, time_ms
-      int version_no = 2;
+      int version_no = 3;
       // cout << "task1," << version_no << "," << num_threads << "," <<
       // chunk_size
       //      << "," << trial << "," << time_taken << endl;
