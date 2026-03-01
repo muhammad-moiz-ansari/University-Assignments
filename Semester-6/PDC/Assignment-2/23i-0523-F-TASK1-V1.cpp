@@ -236,16 +236,91 @@ void printGraphStats(int V, int E) {
        << "║ Edges (total) : " << total_edges << "\t\t\t\t\t║" << endl
        << "║ Edges (upper) : " << E << "\t\t\t\t\t║" << endl
        << "║ Max degree    : " << max_degree << " (before reorder)\t\t\t║\n"
-       << "║ Max out-deg   : " << max_out_deg << " (after reorder, upper triangle)\t║\n"
+       << "║ Max out-deg   : " << max_out_deg
+       << " (after reorder, upper triangle)\t║\n"
        << "╚═══════════════════════════════════════════════════════╝\n\n";
 }
 
-///////////////////////////////////////////
-//                                       //
-//            COUNT TRIANGLES            //
-//                                       //
-///////////////////////////////////////////
+//\
+// \\
+//   \\
+//     \\
+//       \\
+//         \\
+//           \\
+//             \\
+//               \\
+//                 \\
+//                   \\
+//   COUNT TRIANGLES   \\
+//                       \\
+//                         \\
+//                           \\
+//                             \\
+//////////////////\\\\\\\\\\\\\\\\\.
 
+// ================ COUNT INTERSECTIONS ================
+long intersectCount(int *A, int sizeA, int *B, int sizeB) {
+  int i = 0, j = 0;
+  long count = 0;
+
+  while (i < sizeA && j < sizeB) {
+    if (A[i] < B[j])
+      i++;
+    else if (B[j] < A[i])
+      j++;
+    else { // if both are equal, means intersection, means triangle found!
+      count++;
+      i++;
+      j++;
+    }
+  }
+  return count;
+}
+
+// ================ COUNT TRIANGLES ================
+long countTriangles(const vector<int> &offset, vector<int> &neighbors, int V) {
+  long total_count = 0;
+
+  for (int vi = 0; vi < V; ++vi) {
+    // Adj>(vi) = neighbors[offset[vi] .. offset[vi+1]-1]
+    int *A = neighbors.data() + offset[vi];   // For safety of edge cases
+    int sizeA = offset[vi + 1] - offset[vi];
+
+    for (int j = 0; j < sizeA; ++j) {
+      int vj = A[j];
+      int *B = neighbors.data() + offset[vj];   // For safety of edge cases
+      int sizeB = offset[vj + 1] - offset[vj];
+
+      // Intersect Adj>(vi) with Adj>(vj)
+      total_count += intersectCount(A + j + 1, sizeA - (j + 1), B, sizeB);
+    }
+  }
+  return total_count;
+}
+
+// ================ RUNNER FUNCTION ================
+void runScalarBaseline(const vector<int> &offset, vector<int> &neighbors,
+                        int V) {
+  cout << "Running scalar version...\n";
+  // ---------- INITIALIZE TIMER VARIABLES ----------
+  struct timespec start, end;
+
+  // ----------------- START TIMER ------------------
+  clock_gettime(CLOCK_MONOTONIC, &start);
+  // ------------------------------------------------
+
+  long count = countTriangles(offset, neighbors, V);
+
+  // -------- STOP TIMER & CALCULATE (in ms) --------
+  clock_gettime(CLOCK_MONOTONIC, &end);
+  double time_taken = (end.tv_sec - start.tv_sec) * 1000.0 +
+                      (end.tv_nsec - start.tv_nsec) / 1000000.0;
+  // ------------------------------------------------
+
+  cout << "Triangles found: " << count << endl;
+  cout << "Time Taken: " << time_taken << " ms\n";
+}
 
 int main() {
   string filename = "datasets/email-Eu-core.txt";
@@ -256,6 +331,8 @@ int main() {
   buildGraph(filename, offset, neighbors, V, E);
 
   printGraphStats(V, E);
+
+  runScalarBaseline(offset, neighbors, V);
 
   return 0;
 }
