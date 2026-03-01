@@ -14,6 +14,13 @@ int max_edges = 25572, max_nodes = 1005, edges_scanned = 0, total_edges = 0,
     max_degree = 0, max_out_deg = 0;
 int dataset_size_op = 1; // Change this to change dataset size
 
+///////////////////////////////////////////
+//                                       //
+//              BUILD GRAPH              //
+//                                       //
+///////////////////////////////////////////
+
+// ================ PARSE TXT FILE ================
 int parseTXT(vector<pair<int, int>> &edges, string filename) {
   ifstream file(filename);
   if (!file.is_open()) {
@@ -78,12 +85,14 @@ int parseTXT(vector<pair<int, int>> &edges, string filename) {
   return max_vertex_id;
 }
 
+// ================ REMOVE DUPLICATES ================
 int removeDuplicates(vector<pair<int, int>> &edges) {
   sort(edges.begin(), edges.end());
   edges.erase(unique(edges.begin(), edges.end()), edges.end());
   return edges.size(); // cleaned edges
 }
 
+// ================ COMPUTE DEGREES ================
 vector<int> computeDegrees(const vector<pair<int, int>> &edges, int V) {
   vector<int> degree(V, 0);
 
@@ -104,6 +113,7 @@ vector<int> computeDegrees(const vector<pair<int, int>> &edges, int V) {
   return degree;
 }
 
+// ================ REORDER DEGREES ================
 void degreeReorder(const vector<int> &degree, vector<int> &new_id,
                    vector<int> &old_id, int V) {
   // Creating pairs of (degree, original_id)
@@ -122,6 +132,7 @@ void degreeReorder(const vector<int> &degree, vector<int> &new_id,
   }
 }
 
+// ================ REMAP AND FILTER (Upper Edges) ================
 vector<pair<int, int>> remapAndFilter(const vector<pair<int, int>> &edges,
                                       const vector<int> &new_id) {
   vector<pair<int, int>> upper_edges;
@@ -142,6 +153,7 @@ vector<pair<int, int>> remapAndFilter(const vector<pair<int, int>> &edges,
   return upper_edges;
 }
 
+// ================ BUILD CSR ================
 int buildCSR(vector<int> &offset, vector<int> &neighbors,
              const vector<pair<int, int>> &upper_edges, int V) {
   // No. of neighbors in each vertex
@@ -175,6 +187,7 @@ int buildCSR(vector<int> &offset, vector<int> &neighbors,
   return E_upper_count;
 }
 
+// ================ SORT ADJACENCY LIST ================
 void sortAdjList(vector<int> &offset, vector<int> &neighbors, int V) {
   for (int i = 0; i < V; ++i) {
     int start = offset[i];
@@ -183,6 +196,7 @@ void sortAdjList(vector<int> &offset, vector<int> &neighbors, int V) {
   }
 }
 
+// ================ BUILD GRAPH ================
 void buildGraph(string filename, vector<int> &offset, vector<int> &neighbors,
                 int &V, int &E) {
   vector<pair<int, int>> edges;
@@ -213,18 +227,25 @@ void buildGraph(string filename, vector<int> &offset, vector<int> &neighbors,
   sortAdjList(offset, neighbors, V);
 }
 
+// ================ PRINT GRAPH STATS ================
 void printGraphStats(int V, int E) {
-  cout << "\n========================================\n"
-       << "Graph Statistics\n"
-       << "========================================\n"
-       << "Vertices     : " << V << endl
-       << "Edges (total): " << total_edges << endl
-       << "Edges (upper): " << E << endl
-       << "Max degree   : " << max_degree << " (before reorder)\n"
-       << "Max out-deg  : " << max_out_deg
-       << "  (after reorder, upper triangle)\n"
-       << "========================================\n";
+  cout << "\n╔═══════════════════════════════════════════════════════╗\n"
+       << "║                    Graph Statistics                   ║\n"
+       << "╟───────────────────────────────────────────────────────╢\n"
+       << "║ Vertices      : " << V << "\t\t\t\t\t║" << endl
+       << "║ Edges (total) : " << total_edges << "\t\t\t\t\t║" << endl
+       << "║ Edges (upper) : " << E << "\t\t\t\t\t║" << endl
+       << "║ Max degree    : " << max_degree << " (before reorder)\t\t\t║\n"
+       << "║ Max out-deg   : " << max_out_deg << " (after reorder, upper triangle)\t║\n"
+       << "╚═══════════════════════════════════════════════════════╝\n\n";
 }
+
+///////////////////////////////////////////
+//                                       //
+//            COUNT TRIANGLES            //
+//                                       //
+///////////////////////////////////////////
+
 
 int main() {
   string filename = "datasets/email-Eu-core.txt";
