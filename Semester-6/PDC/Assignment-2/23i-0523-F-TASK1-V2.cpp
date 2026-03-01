@@ -14,7 +14,8 @@ using namespace std;
 // Global data
 int max_edges = 25572, max_nodes = 1005, edges_scanned = 0, total_edges = 0,
     max_degree = 0, max_out_deg = 0;
-int dataset_no = 1; // Change this to change dataset size
+double baseline_time = 2.19481; // Default
+int dataset_no = 3;             // Change this to change dataset size
 
 ///////////////////////////////////////////
 //                                       //
@@ -369,30 +370,57 @@ long countTriangles(const vector<int> &offset, vector<int> &neighbors, int V) {
 
 // ================ RUNNER FUNCTION ================
 void runSIMDVersion(const vector<int> &offset, vector<int> &neighbors, int V) {
-  cout << "Running scalar version...\n";
+  cout << "Running SIMD version...\n";
   // ---------- INITIALIZE TIMER VARIABLES ----------
   struct timespec start, end;
 
-  // ----------------- START TIMER ------------------
-  clock_gettime(CLOCK_MONOTONIC, &start);
-  // ------------------------------------------------
+  int test_nums = 8;
+  for (int i = 0; i < test_nums; ++i) {
+    // ----------------- START TIMER ------------------
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    // ------------------------------------------------
 
-  long count = countTriangles(offset, neighbors, V);
+    long count = countTriangles(offset, neighbors, V);
 
-  // -------- STOP TIMER & CALCULATE (in ms) --------
-  clock_gettime(CLOCK_MONOTONIC, &end);
-  double time_taken = (end.tv_sec - start.tv_sec) * 1000.0 +
-                      (end.tv_nsec - start.tv_nsec) / 1000000.0;
-  // ------------------------------------------------
+    // -------- STOP TIMER & CALCULATE (in ms) --------
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    double time_taken = (end.tv_sec - start.tv_sec) * 1000.0 +
+                        (end.tv_nsec - start.tv_nsec) / 1000000.0;
+    // ------------------------------------------------
 
-  double baseline_time = 2.19481; // Default
-  if (dataset_no == 1)
+    double speedup = baseline_time / time_taken;
+
+    if (i == 0) {
+      cout << "Dataset No: " << dataset_no << endl;
+      cout << "Baseline Time: " << baseline_time << " ms\n";
+      cout << "Triangles found: " << count << endl;
+    }
+    cout << "Time Taken: " << time_taken << " ms\t";
+    cout << "Speedup: " << speedup << endl;
+  }
+}
+
+void setDatasetParameters(int dataset_no, string &filename) {
+  if (dataset_no == 1) {
+    filename = "datasets/email-Eu-core.txt";
     baseline_time = 2.19481;
-  double speedup = baseline_time / time_taken;
-
-  cout << "Triangles found: " << count << endl;
-  cout << "Time Taken: " << time_taken << " ms\n";
-  cout << "Speedup: " << speedup << endl;
+    max_edges = 25572;
+    max_nodes = 1005;
+  } else if (dataset_no == 2) {
+    filename = "datasets/facebook_combined.txt";
+    baseline_time = 12.3207;
+    max_edges = 88234;
+    max_nodes = 4039;
+  } else if (dataset_no == 3) {
+    filename = "datasets/com-lj.ungraph.txt";
+    baseline_time = 7477.61;
+    max_edges = 34681189;
+    max_nodes = 4136524;
+  } else if (dataset_no == 4) {
+    filename = "datasets/com-friendster.ungraph.txt";
+    max_edges = 1806067135;
+    max_nodes = 65608366;
+  }
 }
 
 int main() {
@@ -401,8 +429,7 @@ int main() {
   vector<int> neighbors;
   int V, E;
 
-  if (dataset_no == 1)
-    filename = "datasets/email-Eu-core.txt";
+  setDatasetParameters(dataset_no, filename);
 
   buildGraph(filename, offset, neighbors, V, E);
 

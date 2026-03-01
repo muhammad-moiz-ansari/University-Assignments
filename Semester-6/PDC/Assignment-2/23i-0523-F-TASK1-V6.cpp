@@ -14,8 +14,9 @@ using namespace std;
 int max_edges = 25572, max_nodes = 1005, edges_scanned = 0, total_edges = 0,
     max_degree = 0, max_out_deg = 0;
 int num_threads = 1;
+double baseline_time = 2.19481; // Default
 
-int dataset_no = 1; // Change this to change dataset size
+int dataset_no = 3; // Change this to change dataset size
 
 ///////////////////////////////////////////
 //                                       //
@@ -299,19 +300,19 @@ long countTriangles(const vector<int> &offset, vector<int> &neighbors, int V) {
 
 // ================ RUNNER FUNCTION ================
 void runOMP_ompSIMDVersion(const vector<int> &offset, vector<int> &neighbors,
-                        int V) {
+                           int V) {
   cout << "Running OpenMP + omp SIMD version...\n";
   // ---------- INITIALIZE TIMER VARIABLES ----------
   struct timespec start, end;
 
-  int start_th_num = 8;
+  int start_th_num = 1;
   for (int i = start_th_num; i <= 8; i *= 2) {
     num_threads = i;
 #pragma omp parallel num_threads(num_threads)
     {
     } // empty warmup
 
-    int test_nums = 8;
+    int test_nums = 4;
     for (int j = 0; j < test_nums; ++j) {
 
       // ----------------- START TIMER ------------------
@@ -326,12 +327,11 @@ void runOMP_ompSIMDVersion(const vector<int> &offset, vector<int> &neighbors,
                           (end.tv_nsec - start.tv_nsec) / 1000000.0;
       // ------------------------------------------------
 
-      double baseline_time = 2.19481; // Default
-      if (dataset_no == 1)
-        baseline_time = 2.19481;
       double speedup = baseline_time / time_taken;
 
-      if (i == 0) {
+      if (j == 0) {
+        cout << "Dataset No: " << dataset_no << endl;
+        cout << "Baseline Time: " << baseline_time << " ms\n";
         cout << "Triangles found: " << count << endl;
         cout << "Threads used: " << num_threads << endl;
       }
@@ -342,14 +342,36 @@ void runOMP_ompSIMDVersion(const vector<int> &offset, vector<int> &neighbors,
   }
 }
 
+void setDatasetParameters(int dataset_no, string &filename) {
+  if (dataset_no == 1) {
+    filename = "datasets/email-Eu-core.txt";
+    baseline_time = 2.19481;
+    max_edges = 25572;
+    max_nodes = 1005;
+  } else if (dataset_no == 2) {
+    filename = "datasets/facebook_combined.txt";
+    baseline_time = 34.8332;  //12.3207;
+    max_edges = 88234;
+    max_nodes = 4039;
+  } else if (dataset_no == 3) {
+    filename = "datasets/com-lj.ungraph.txt";
+    baseline_time = 7477.61;
+    max_edges = 34681189;
+    max_nodes = 4136524;
+  } else if (dataset_no == 4) {
+    filename = "datasets/com-friendster.ungraph.txt";
+    max_edges = 1806067135;
+    max_nodes = 65608366;
+  }
+}
+
 int main() {
   string filename = "datasets/email-Eu-core.txt"; // Default
   vector<int> offset;
   vector<int> neighbors;
   int V, E;
 
-  if (dataset_no == 1)
-    filename = "datasets/email-Eu-core.txt";
+  setDatasetParameters(dataset_no, filename);
 
   buildGraph(filename, offset, neighbors, V, E);
 
