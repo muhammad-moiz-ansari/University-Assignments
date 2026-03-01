@@ -108,7 +108,7 @@ int main() {
   // ====== INITIALIZE TIMER VARIABLES =====
   struct timespec start, end;
 
-  int num_trials = 5;
+  int num_trials = 1;
 
   for (int trial = 1; trial <= num_trials; ++trial) {
     res.PRED_POS = 0;

@@ -125,8 +125,14 @@ int main() {
   struct timespec start, end;
 
   int num_trials = 5;
+  int start_threads = 1;
 
-  for (int k = 1; k <= 8; k = k * 2) {
+  // For profiling
+  num_trials = 1;
+  start_threads = 8;
+
+  int max_threads = 8;
+  for (int k = start_threads; k <= max_threads; k = k * 2) {
     int num_threads = k;
     vector<double> speedups;
 
@@ -136,14 +142,15 @@ int main() {
       res.FP = 0;
       res.TN = 0;
       res.FN = 0;
-      // ========== START TIMER ==========
-      clock_gettime(CLOCK_MONOTONIC, &start);
-      // =================================
 
       // Threading Stuff
       long int chunk_size = total_records / num_threads;
       pthread_t threads[num_threads];
       ThreadData tdata[num_threads];
+
+      // ========== START TIMER ==========
+      clock_gettime(CLOCK_MONOTONIC, &start);
+      // =================================
 
       for (int i = 0; i < num_threads; ++i) {
         tdata[i].tid = i;

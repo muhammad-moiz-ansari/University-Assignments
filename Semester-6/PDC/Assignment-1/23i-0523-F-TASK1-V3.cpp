@@ -142,8 +142,14 @@ int main() {
   struct timespec start, end;
 
   int num_trials = 5;
+  int start_threads = 1;
 
-  for (int k = 1; k <= 8; k = k * 2) {
+  // For profiling
+  num_trials = 1;
+  start_threads = 8;
+
+  int max_threads = 8;
+  for (int k = start_threads; k <= max_threads; k = k * 2) {
     int num_threads = k;
     vector<double> speedups;
     for (int trial = 1; trial <= num_trials; ++trial) {
@@ -205,9 +211,9 @@ int main() {
       // Print to CSV
       // Format: task, version, threads, chunk, trial, time_ms
       int version_no = 3;
-      // cout << "task1," << version_no << "," << num_threads << "," <<
-      // chunk_size
-      //      << "," << trial << "," << time_taken << endl;
+      // cout << "task1," << version_no << "," << num_threads << ","
+      // <<chunk_size
+      // << "," << trial << "," << time_taken << endl;
     }
     for (int i = 0; i < num_trials; ++i)
       // cout << speedups[i] << ",";
