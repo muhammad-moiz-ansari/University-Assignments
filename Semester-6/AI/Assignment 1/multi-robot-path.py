@@ -17,10 +17,10 @@ class Robot:
         return f"Robot {self.id} (Priority: {self.priority}, Energy Limit: {self.energy_limit}, Start: {self.start}, Goal: {self.goal}, Checkpoints: {self.checkpoints})"
     
 class Grid:
-    def __init__(self, width, height):
+    def __init__(self, width, height, cells):
         self.width = width
         self.height = height
-        self.cells = []
+        self.cells = cells
         self.reservations = set()
     
     # To get correct element in array
@@ -136,55 +136,61 @@ def generate_path(state):
     return path[::-1]
 
 def parse_txt(filepath):
-    ind = 0
-    cells = []
-    checkpts = []
-
-    # 'r' stands for read mode
     with open(filepath, 'r') as file:
-        robots = []
         lines = file.read().splitlines()
-        N, M = lines[0].split()
-        N, M = int(N), int(M)
 
-        # Grid values
-        for i in range(1, M + 1):
-            cells.append(lines[i])
-            ind = i
-        
-        # Robots
-        ind += 1
-        R = int(lines[ind].split()[0])
-        
-        for i in range(R):
-            id, pr, elimit = lines[ind + 1].split()
-            id, pr, elimit = int(id), int(pr), int(elimit)
-            st1, st2 = lines[ind + 2].split()
-            start = (int(st1), int(st2))
-            g1, g2 = lines[ind + 3].split()
-            goal = (int(g1), int(g2))
+    N, M = lines[0].split()
+    N, M = int(N), int(M)
 
-            # Checkpoints
-            ind += 4
-            cnum = lines[ind + 4].split()[0]
+    # GRID
+    cells = []
+    # loop N times for N rows
+    for i in range(1, N + 1):
+        cells.append(lines[i])
+        
+    line_idx = N + 1
+    R = int(lines[line_idx])
+    line_idx += 1
+    
+    robots = []
+    
+    for i in range(R):
+        id, pr, elimit = lines[line_idx].split()
+        id, pr, elimit = int(id), int(pr), int(elimit)
+        line_idx += 1
+        
+        st1, st2 = lines[line_idx].split()
+        start = (int(st1), int(st2))
+        line_idx += 1
+        
+        g1, g2 = lines[line_idx].split()
+        goal = (int(g1), int(g2))
+        line_idx += 1
+
+        # Checkpoints
+        cnum = int(lines[line_idx])
+        line_idx += 1
+        
+        checkpts = []
+        for j in range(cnum):
+            c1, c2 = lines[line_idx].split()
+            cpt = (int(c1), int(c2))
+            checkpts.append(cpt)
+            line_idx += 1
             
-            for j in range(cnum):
-                ind += 1
-                c1, c2 = lines[ind].split()
-                cpt = (int(c1), int(c2))
-                checkpts.append(cpt)
-            robot = Robot(id, pr, elimit, start, goal, checkpts.copy())
-            robots.append(robot)
-            checkpts.clear()
+        robot = Robot(id, pr, elimit, start, goal, checkpts)
+        robots.append(robot)
 
-        grid = Grid(N, M, cells)
-        return grid, robots
+    grid = Grid(M, N, cells)
+    
+    return grid, robots
+
     
 def main():
     grid, robots = parse_txt('input.txt')
 
     # Sort robots by priority
-    robots.sort(key=lambda r: r.priority)
+    robots.sort(key=lambda r: r.priority, reverse=True)
 
     for robot in robots:
         path = bfs(robot, grid)
@@ -194,3 +200,7 @@ def main():
             print(f"Robot {robot.id}: Path found with length {len(path) - 1}.")
             for state in path:
                 grid.add_reservation(state.x, state.y, state.t)
+
+
+if __name__ == "__main__":
+    main()
