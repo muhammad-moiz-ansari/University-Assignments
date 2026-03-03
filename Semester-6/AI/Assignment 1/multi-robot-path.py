@@ -206,7 +206,7 @@ def write_output(filepath, allData):
 
     
 def main():
-    grid, robots = parse_txt('input4.txt')
+    grid, robots = parse_txt('input.txt')
 
     # Sort robots by priority
     robots.sort(key=lambda r: r.priority, reverse=True)
