@@ -105,7 +105,7 @@ def bfs(robot, grid):
 
         # Check if goal is reached
         if (curr_state.x, curr_state.y) == robot.goal and curr_state.cp_ind == len(robot.checkpoints):
-            return generate_path(curr_state)
+            return generate_path(curr_state), curr_state.t
         
         # Check energy limit
         if curr_state.t >= robot.energy_limit:
@@ -126,7 +126,7 @@ def bfs(robot, grid):
             if next_state not in visited:
                 visited.add(next_state)
                 queue.append(next_state)
-    return None
+    return None, None
 
 def generate_path(state):
     path = []
@@ -185,6 +185,25 @@ def parse_txt(filepath):
     
     return grid, robots
 
+
+def write_output(filepath, allData):
+    with open(filepath, 'w') as file:
+        for data in allData:
+            id = data[0]
+            path = data[1]
+            time = data[2]
+
+            if path is None:
+                file.write(f"Error: No valid path found for Robot {id}\n\n")
+            else:
+                file.write(f"Robot {id}:\n")
+                file.write(f"Path: ({path[0].x}, {path[0].y})")
+                for j in range(1, len(path)):
+                    state = path[j]
+                    file.write(f" -> ({state.x}, {state.y})")
+                file.write(f"\nTotal Time: {time}\nTotal Energy: {time}\n\n")
+
+
     
 def main():
     grid, robots = parse_txt('input.txt')
@@ -192,14 +211,21 @@ def main():
     # Sort robots by priority
     robots.sort(key=lambda r: r.priority, reverse=True)
 
+    data = []
     for robot in robots:
-        path = bfs(robot, grid)
+        path, time = bfs(robot, grid)
         if path is None:
             print(f"Robot {robot.id}: No valid path found.")
+            data.append((robot.id, None, None))
         else:
             print(f"Robot {robot.id}: Path found with length {len(path) - 1}.")
+            data.append((robot.id, path, time))
             for state in path:
                 grid.add_reservation(state.x, state.y, state.t)
+    
+    # Sort by robot ID for output
+    data.sort(key=lambda x: x[0]) 
+    write_output("output.txt", data)
 
 
 if __name__ == "__main__":
