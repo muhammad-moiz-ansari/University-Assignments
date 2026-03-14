@@ -1,0 +1,16 @@
+#
+# Creator (https://creatorsim.github.io/creator/)
+#
+
+.text
+main:
+  addi s0, x0, 3
+  addi s1, x0, 2
+  addi s2, x0, 4
+  addi s3, x0, 6
+  addi s5, x0, 6
+  
+  mul s6, s2, s3
+  add s6, s1, s6
+  sub s6, s6, s5
+  mul s6, s0, s6

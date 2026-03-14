@@ -1,0 +1,59 @@
+
+.data
+  
+
+.text
+main:
+  li s0, 0
+  li s1, 3
+  li s2, 2
+  li s3, 0
+  li s4, 32
+
+L1:
+  # Extract Q_0 from Q (s2)
+  andi t0, s2, 1      # t0 = Q_0
+  
+  # Combine Q_0 and Q_{-1} (s3)
+  slli t0, t0, 1      # Shift Q_0 left to make room
+  or t0, t0, s3       # t0 now holds exactly 0, 1, 2, or 3
+
+  # Branch based on the combination
+  li t2, 1            # Binary 01
+  beq t0, t2, If1     # If 01, A = A + M
+
+  li t2, 2            # Binary 10
+  beq t0, t2, If2     # If 10, A = A - M
+
+  # If it is 0 (00) or 3 (11), it just falls through to Skip!
+  j Skip
+
+If1:
+  add s0, s0, s1      # A = A + M
+  j Skip
+
+If2:
+  sub s0, s0, s1      # A = A - M
+
+Skip:
+  # Arithmetic Shift Right A, Q, Q-1
+  # Q-1
+  andi s3, s2, 1
+
+  # Q
+  srli s2, s2, 1
+  andi t3, s0, 1
+  slli t3, t3, 31
+  or s2, s2, t3
+
+  # A
+  srai s0, s0, 1
+
+  # count
+  addi s4, s4, -1
+  bne s4, x0, L1
+  
+  li a7, 10
+  ecall
+
+

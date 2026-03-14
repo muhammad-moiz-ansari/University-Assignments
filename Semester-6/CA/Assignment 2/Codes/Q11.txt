@@ -1,0 +1,38 @@
+
+.data
+arr: .word 12, -5, 23, 7, -18, 34, 0, -2, 15, 9
+
+.text
+main:
+  la t0, arr  # base address
+  lw s0, 0(t0)    # smallest
+  lw s1, 0(t0)    # largest
+  
+  addi s2, zero, 1    # i
+  addi t1, zero, 10
+
+For:
+  bge s2, t1, Fend
+  
+  slli t2, s2, 2
+  add t2, t2, t0
+
+  lw t3, 0(t2)
+  blt t3, s0, If1
+  j Fi1
+  If1:
+    add s0, x0, t3
+  Fi1:
+
+  bgt t3, s1, If2
+  j Fi2
+  If2:
+    add s1, x0, t3
+  Fi2:
+
+  addi s2, s2, 1
+  j For
+Fend:
+
+
+

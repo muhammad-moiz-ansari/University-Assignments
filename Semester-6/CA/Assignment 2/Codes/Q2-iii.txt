@@ -1,0 +1,13 @@
+.text
+main:
+li s0, 42
+li s1, 2
+li s2, 14
+li s3, 8
+li s4, 2
+# s6 -> Ans
+
+sub s6, s2, s3
+mul s6, s6, s1
+div s6, s6, s4
+add s6, s6, s0

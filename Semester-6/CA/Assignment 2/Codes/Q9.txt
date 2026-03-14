@@ -1,0 +1,27 @@
+
+.data
+msg_true: .asciz "Condition is true\n"
+msg_false: .asciz "Condition is false\n"
+
+.text
+main:
+  addi s0, x0, 10
+  addi s1, x0, 20
+  addi s2, x0, 5
+  
+  bge s0, s1, Check2
+  bgt s1, s2, IF
+Check2:
+  beq s0, s2, IF
+  j ELSE
+
+IF:
+  la a0, msg_true
+  li a7, 4
+  ecall
+  j DONE
+ELSE:
+  la a0, msg_false
+  li a7, 4
+  ecall
+DONE:

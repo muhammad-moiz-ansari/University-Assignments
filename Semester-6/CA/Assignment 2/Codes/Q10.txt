@@ -1,0 +1,35 @@
+.data
+msg: .asciz "\nOuter loop iteration"
+
+.text
+main:
+  addi s0, x0, 1   # i = 1
+  addi t0, x0, 3   # max for i
+  addi t1, x0, 2   # max for j
+
+For:
+  bgt s0, t0, Exit1  # If i > 3, exit the outer loop
+  
+  addi s1, x0, 1     # j = 1 (Resets j every time the outer loop runs)
+  
+  la a0, msg         # Print "Outer loop iteration\n"
+  li a7, 4
+  ecall
+
+  While:
+    bgt s1, t1, Exit2  # If j > 2, exit the inner loop
+    
+    mv a0, s1          # Move j into a0 to print it (FIXED ERROR)
+    li a7, 1           # Print integer
+    ecall
+    
+    addi s1, s1, 1     # j++
+    j While            # Jump back to start of While loop
+
+  Exit2:
+  addi s0, s0, 1     # i++
+  j For              # Jump back to start of For loop
+
+Exit1:
+  li a7, 10          # Safely exit program
+  ecall

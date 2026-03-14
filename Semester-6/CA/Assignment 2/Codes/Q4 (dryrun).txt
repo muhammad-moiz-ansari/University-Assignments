@@ -1,0 +1,62 @@
+
+.data
+  ##### Put # in data declaration if error is found
+  ## for the errors
+  b1: .byte +128,-5,-128, 119,0xAD,'A', 'b',-89,255
+  #b2: .byte -129
+  #b3: .byte "h"
+  #b4: .byte 'hello'
+  #b5: .string 'hello'
+  b6: .asciz "hello again"
+  b7: .string "hello"
+  b8: .byte 0
+  .align 2 #required to align on half boundry
+
+  h1: .half 0xABCD, 2,-5,44175,0x12AB
+  h2: .half 6536
+  #h3: .half +32768
+  #h4: .half -32769
+  h5: .half 0x61
+  .align 4 #required to align on word boundary
+  b9: .byte 0
+  b10: .byte 0
+  w1: .word 0x12345678, +5,-5, 0xABCEF712, 0x12345DEF
+
+.text
+main:
+  la s0,b1
+  lb t0,1(s0) # load byte
+  lbu t1,1(s0)
+  
+  lb t2, 64(s0)
+  sb t1,0(s0)
+
+  la s1, h1
+  lh t0,0(s0)
+  lh t1,2(s0)
+  lh t2,4(s0)
+  lhu t3,4(s0)
+  lh t4,20(s0)
+
+  la s1, h1
+  lb t0,0(s0) #check values
+  lb t1,1(s0)
+  lb t2,2(s0)
+  lb t3,3(s0)
+  lw t4,12(s0)
+
+  lui t5,0xabcdf
+  addi t5,zero,0x723
+  sw t5,0(s0)
+
+  lui t5,0xabcde
+  addi t5,zero,-1
+  sw t5,4(s0)
+
+  li t0,0xabcde123
+  sw t0,8(s0)
+  
+  li t0,0xabcde823
+  sw t0,12(s0)
+
+
