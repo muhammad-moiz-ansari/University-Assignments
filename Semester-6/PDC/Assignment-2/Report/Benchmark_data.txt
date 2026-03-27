@@ -1,0 +1,92 @@
+Triangles found: 
+D1: 105461
+D2: 1612010
+D3: 177820130
+
+---------- V1 (Baseline) ----------
+D1: 2.19481 ms
+
+D2: 12.3207 ms
+
+D3: 7477.61 ms
+
+
+---------- V2 ----------
+D1:
+Time Taken: 0.89624 ms  Speedup: 2.44891
+
+D2:
+Time Taken: 4.9724 ms	Speedup: 2.47782
+
+D3:
+Time Taken: 5235.09 ms	Speedup: 1.42836
+
+
+---------- V3 ----------
+D1:
+Time Taken: 1.98907 ms	Speedup: 1.10343
+
+D2:
+Time Taken: 21.4633 ms	Speedup: 0.574036
+
+D3:
+Time Taken: 11807 ms	Speedup: 0.633321
+
+---------- V4 (Threads: 1, 2, 4, 8) ----------
+D1:
+1: Time Taken: 1.78139 ms	Speedup: 1.23207
+2: Time Taken: 0.903457 ms	Speedup: 2.42935
+4: Time Taken: 0.445334 ms	Speedup: 4.92846
+8: Time Taken: 0.301785 ms	Speedup: 7.27276
+
+D2:
+1: Time Taken: 10.1285 ms	Speedup: 1.21644
+2: Time Taken: 4.92807 ms	Speedup: 2.50011
+4: Time Taken: 3.10489 ms	Speedup: 3.96816
+8: Time Taken: 1.87197 ms	Speedup: 6.58167
+
+D3:
+1: Time Taken: 7171.75 ms	Speedup: 1.04265
+2: Time Taken: 4121.41 ms	Speedup: 1.81433
+4: Time Taken: 2653.56 ms	Speedup: 2.81796
+8: Time Taken: 1705.04 ms	Speedup: 4.38559
+
+
+---------- V5 ----------
+D1:
+1: Time Taken: 0.942541 ms	Speedup: 2.32861
+2: Time Taken: 0.506121 ms	Speedup: 4.33653
+4: Time Taken: 0.273444 ms	Speedup: 8.02654
+8: Time Taken: 0.159288 ms	Speedup: 13.7789
+
+D2:
+1: Time Taken: 11.2244 ms	Speedup: 1.09767
+2: Time Taken: 7.79065 ms	Speedup: 1.58147
+4: Time Taken: 4.43369 ms	Speedup: 2.77888
+8: Time Taken: 2.15113 ms	Speedup: 5.72754
+
+D3:
+1: Time Taken: 5494.46 ms	Speedup: 1.36094
+2: Time Taken: 2976 ms		Speedup: 2.51264
+4: Time Taken: 1879 ms		Speedup: 3.97957
+8: Time Taken: 1378.7 ms	Speedup: 5.42367
+
+
+---------- V6 ----------
+D1:
+1: Time Taken: 2.22885 ms	Speedup: 0.984726
+2: Time Taken: 1.28396 ms	Speedup: 1.70941
+4: Time Taken: 0.831992 ms	Speedup: 2.63802
+8: Time Taken: 0.442507 ms	Speedup: 4.95994
+
+D2:
+1: Time Taken: 24.1131 ms	Speedup: 1.44458
+2: Time Taken: 13.5955 ms	Speedup: 2.5621
+4: Time Taken: 8.65342 ms	Speedup: 4.02537
+8: Time Taken: 5.75664 ms	Speedup: 6.05096
+
+D3:
+1: Time Taken: 11189.9 ms	Speedup: 0.668247
+2: Time Taken: 6002.54 ms	Speedup: 1.24574
+4: Time Taken: 3693.38 ms	Speedup: 2.0246
+8: Time Taken: 2632.67 ms	Speedup: 2.84031
