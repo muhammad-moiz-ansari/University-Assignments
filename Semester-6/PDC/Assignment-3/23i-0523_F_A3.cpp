@@ -5,6 +5,7 @@
 #include <parmetis.h>
 #include <sstream>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 using namespace std;
 
@@ -163,6 +164,82 @@ void parmetis_partition(vector<int> &xadj, vector<int> &adjncy, int numNodes,
   }
 }
 
+void redistribute_graph(vector<pair<int, int>> &edges, vector<int> &part,
+                        int numNodes, int rank, int numRanks,
+                        vector<int> &localNodes, vector<vector<int>> &inEdges,
+                        vector<int> &ghostNodes,
+                        unordered_map<int, int> &ghostIndex,
+                        unordered_set<int> &localSet) {
+
+  // Step 1: collect which nodes belong to this rank
+  for (int i = 0; i < numNodes; i++)
+    if (part[i] == rank)
+      localNodes.push_back(i);
+
+  // Step 2: build a fast lookup -> is node i owned by this rank?
+  localSet = unordered_set<int>(localNodes.begin(), localNodes.end());
+
+  // Step 3: for each local node, find all incoming edges from the original
+  // directed graph and store them
+  // inEdges[i] = list of nodes that point INTO localNodes[i]
+  inEdges.resize(localNodes.size());
+
+  // build a map: globalNodeID -> index in localNodes array
+  unordered_map<int, int> localIndex;
+  for (int i = 0; i < (int)localNodes.size(); i++)
+    localIndex[localNodes[i]] = i;
+
+  // scan all edges, keep only those where destination is a local node
+  for (auto &e : edges) {
+    int from = e.first;
+    int to = e.second;
+
+    // we only care about edges pointing INTO our local nodes
+    if (localIndex.find(to) == localIndex.end())
+      continue;
+
+    int idx = localIndex[to];
+    inEdges[idx].push_back(from);
+
+    // Step 4: if the source node is remote, it becomes a ghost node
+    if (localSet.find(from) == localSet.end()) {
+      if (ghostIndex.find(from) == ghostIndex.end()) {
+        ghostIndex[from] = ghostNodes.size();
+        ghostNodes.push_back(from);
+      }
+    }
+  }
+}
+
+void classify_vertices(vector<vector<int>> &inEdges,
+                       unordered_set<int> &localSet, vector<int> &internalNodes,
+                       vector<int> &boundaryNodes) {
+
+  for (int i = 0; i < (int)inEdges.size(); i++) {
+    bool isBoundary = false;
+
+    for (int src : inEdges[i]) {
+      if (localSet.find(src) == localSet.end()) {
+        isBoundary = true;
+        break;
+      }
+    }
+
+    if (isBoundary)
+      boundaryNodes.push_back(i);
+    else
+      internalNodes.push_back(i);
+  }
+}
+
+void compute_outdegree(vector<pair<int, int>> &edges, int numNodes,
+                       vector<int> &outDegree) {
+  // count outgoing edges for each node from the directed edge list
+  outDegree.assign(numNodes, 0);
+  for (auto &e : edges)
+    outDegree[e.first]++;
+}
+
 int main(int argc, char *argv[]) {
   string filename = "/home/moiz129/cloud/web-Google.txt";
   vector<pair<int, int>> edges;
@@ -187,7 +264,6 @@ int main(int argc, char *argv[]) {
   vector<int> xadj, adjncy;
   if (rank == 0) {
     build_csr(edges, numNodes, xadj, adjncy);
-    edges.clear();
     nodeRemap.clear();
   }
 
@@ -209,6 +285,65 @@ int main(int argc, char *argv[]) {
   // Run ParMETIS partitioning
   vector<int> part;
   parmetis_partition(xadj, adjncy, numNodes, numRanks, part, MPI_COMM_WORLD);
+
+  // Broadcast part[] to all ranks so everyone knows who owns what
+  if (rank != 0)
+    part.resize(numNodes);
+  MPI_Bcast(part.data(), numNodes, MPI_INT, 0, MPI_COMM_WORLD);
+
+  // Broadcast edges to all ranks so redistribution works on all ranks
+  int edgeCount = 0;
+  if (rank == 0)
+    edgeCount = edges.size();
+  MPI_Bcast(&edgeCount, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  if (rank != 0)
+    edges.resize(edgeCount);
+
+  // Send edges as flat int array (from, to pairs)
+  vector<int> edgeFlat;
+  if (rank == 0) {
+    for (auto &e : edges) {
+      edgeFlat.push_back(e.first);
+      edgeFlat.push_back(e.second);
+    }
+  }
+  edgeFlat.resize(edgeCount * 2);
+  MPI_Bcast(edgeFlat.data(), edgeCount * 2, MPI_INT, 0, MPI_COMM_WORLD);
+
+  if (rank != 0) {
+    for (int i = 0; i < edgeCount; i++)
+      edges[i] = {edgeFlat[i * 2], edgeFlat[i * 2 + 1]};
+  }
+  edgeFlat.clear();
+
+  // Compute outDegree BEFORE clearing edges
+  vector<int> outDegree;
+  if (rank == 0)
+    compute_outdegree(edges, numNodes, outDegree);
+
+  // Broadcast outDegree to all ranks
+  outDegree.resize(numNodes);
+  MPI_Bcast(outDegree.data(), numNodes, MPI_INT, 0, MPI_COMM_WORLD);
+
+  // Run redistribution on all ranks
+  vector<int> localNodes;
+  vector<vector<int>> inEdges;
+  vector<int> ghostNodes;
+  unordered_map<int, int> ghostIndex;
+  unordered_set<int> localSet;
+
+  redistribute_graph(edges, part, numNodes, rank, numRanks, localNodes, inEdges,
+                     ghostNodes, ghostIndex, localSet);
+
+  edges.clear();
+
+  vector<int> internalNodes, boundaryNodes;
+  classify_vertices(inEdges, localSet, internalNodes, boundaryNodes);
+
+  // Print summary from each rank
+  cout << "Rank " << rank << ": " << localNodes.size() << " local nodes, "
+       << ghostNodes.size() << " ghost nodes, " << internalNodes.size()
+       << " internal, " << boundaryNodes.size() << " boundary" << endl;
 
   MPI_Finalize();
   return 0;
