@@ -149,20 +149,13 @@ void parmetis_partition(vector<int> &xadj, vector<int> &adjncy, int numNodes,
   }
 
   part.resize(numNodes);
+
   // Collecting variable-size arrays from all ranks into rank 0
   MPI_Gatherv(local_part.data(), localN, MPI_INT, part.data(),
               recvcounts.data(), displs.data(), MPI_INT, 0, comm);
 
-  if (rank == 0) {
-    cout << "Edge cut: " << edgecut << endl;
-
-    // Counting how many nodes went to each rank
-    vector<int> count(numRanks, 0);
-    for (int i = 0; i < numNodes; i++)
-      count[part[i]]++;
-    for (int i = 0; i < numRanks; i++)
-      cout << "Rank " << i << " owns " << count[i] << " nodes" << endl;
-  }
+  if (rank == 0)
+    cout << "\n  Edge cut: " << edgecut << endl;
 }
 
 void redistribute_graph(vector<pair<int, int>> &edges, vector<int> &part,
@@ -172,37 +165,36 @@ void redistribute_graph(vector<pair<int, int>> &edges, vector<int> &part,
                         unordered_map<int, int> &ghostIndex,
                         unordered_set<int> &localSet) {
 
-  // Step 1: collect which nodes belong to this rank
+  // Collecting which nodes belong to this rank
   for (int i = 0; i < numNodes; i++)
     if (part[i] == rank)
       localNodes.push_back(i);
 
-  // Step 2: build a fast lookup -> is node i owned by this rank?
+  // Building a fast lookup -> if node i owned by this rank or not
   localSet = unordered_set<int>(localNodes.begin(), localNodes.end());
 
-  // Step 3: for each local node, find all incoming edges from the original
-  // directed graph and store them
-  // inEdges[i] = list of nodes that point INTO localNodes[i]
+  // For each local node, finding all incoming edges from the original directed graph and store them
+  // inEdges[i] = list of nodes that point into localNodes[i]
   inEdges.resize(localNodes.size());
 
-  // build a map: globalNodeID -> index in localNodes array
+  // Building a map: globalNodeID -> index in localNodes array
   unordered_map<int, int> localIndex;
   for (int i = 0; i < (int)localNodes.size(); i++)
     localIndex[localNodes[i]] = i;
 
-  // scan all edges, keep only those where destination is a local node
+  // Scaning all edges, EXCEPT only those where destination is a local node
   for (auto &e : edges) {
     int from = e.first;
     int to = e.second;
 
-    // we only care about edges pointing INTO our local nodes
+    // Edges pointing INTO the local nodes
     if (localIndex.find(to) == localIndex.end())
       continue;
 
     int idx = localIndex[to];
     inEdges[idx].push_back(from);
 
-    // Step 4: if the source node is remote, it becomes a ghost node
+    // If the source node is remote, it becomes a ghost node
     if (localSet.find(from) == localSet.end()) {
       if (ghostIndex.find(from) == ghostIndex.end()) {
         ghostIndex[from] = ghostNodes.size();
@@ -233,13 +225,18 @@ void classify_vertices(vector<vector<int>> &inEdges,
   }
 }
 
-void compute_outdegree(vector<pair<int, int>> &edges, int numNodes,
-                       vector<int> &outDegree) {
-  // count outgoing edges for each node from the directed edge list
+void compute_outdegree(vector<pair<int, int>> &edges, int numNodes, vector<int> &outDegree) {
+  // Counting outgoing edges for each node from the directed edge list
   outDegree.assign(numNodes, 0);
   for (auto &e : edges)
     outDegree[e.first]++;
 }
+
+///////////////////////////////////////
+//                                   //
+//        PAGE RANK FUNCTIONS        //
+//                                   //
+///////////////////////////////////////
 
 // ========================================================
 // --------------- Scenario 1: Blocking P2P ---------------
@@ -266,12 +263,7 @@ void pagerank_p2p(vector<int> &localNodes, vector<vector<int>> &inEdges,
   for (int i = 0; i < localN; i++)
     localIndex[localNodes[i]] = i;
 
-  // Pre-compute communication structure (done once before iterations)
-  // For each rank r: which of our local nodes does rank r need from us?
-  // Answer: whichever of our local nodes appear as ghosts on rank r
-  // We find this by checking: for each ghost node g we need,
-  // part[g] tells us which rank owns g -> that rank needs to send it to us
-  // Symmetrically: if rank r has g as ghost and part[g]==rank, we send to r
+  // Pre-computation of communication structure
 
   // sendList[r] = local node indices we must send to rank r each iteration
   vector<vector<int>> sendList(numRanks);
@@ -285,8 +277,8 @@ void pagerank_p2p(vector<int> &localNodes, vector<vector<int>> &inEdges,
     recvList[owner].push_back(gi); // we receive ghost index gi from rank owner
   }
 
-  // For each other rank, tell them which of their nodes we need and find out
-  // which of our nodes they need
+  // For each other rank, tell them which of their nodes we need and 
+  // find out which of our nodes they need
   for (int r = 0; r < numRanks; r++) {
     if (r == rank)
       continue;
@@ -320,13 +312,12 @@ void pagerank_p2p(vector<int> &localNodes, vector<vector<int>> &inEdges,
       MPI_Send(needIDs.data(), needCount, MPI_INT, r, 11, comm);
     }
 
-    // convert those global IDs to local indices for fast lookup during
-    // iterations
+    // Converting those global IDs to local indices for fast lookup during iterations
     for (int g : theirNeedIDs)
       sendList[r].push_back(localIndex[g]);
   }
 
-  // Pre-compute source lookup for each local node's incoming edges
+  // Pre-computation of source lookup for each local node's incoming edges
   // srcType[i][j] = 0 means local, 1 means ghost
   // srcIdx[i][j]  = index into pr[] or ghostPR[]
   vector<vector<pair<int, int>>> srcLookup(localN);
@@ -485,11 +476,6 @@ void pagerank_collective(vector<int> &localNodes, vector<vector<int>> &inEdges,
   }
 
   // Build flat send/recv buffers for Allgatherv-style collective exchange
-  // We concatenate all per-rank send values into one flat buffer
-  // then use MPI_Allgatherv to distribute to all ranks at once
-  // sendcounts[r] = how many values this rank sends to rank r
-  // but Allgatherv sends one flat array from each rank to all others
-  // so we use it per-ghost-exchange: each rank sends its ghost contributions
 
   // Precompute srcLookup
   vector<vector<pair<int, int>>> srcLookup(localN);
@@ -527,12 +513,7 @@ void pagerank_collective(vector<int> &localNodes, vector<vector<int>> &inEdges,
   vector<double> flatSendBuf(totalSend);
   vector<double> flatRecvBuf(totalRecv);
 
-  // We also need to know which position in flatRecvBuf corresponds to which
-  // ghost Build a lookup: for each rank r, for each value they send, which
-  // ghost index is it? Each rank sends sendList[r] values for rank r,
-  // sendList[s] for rank s, etc. But Allgatherv just gives us rank r's flat
-  // buffer — we need to know the order So we exchange the node IDs in the flat
-  // order as a one-time setup
+  // Exchange the node IDs in the flat order as a one-time setup
   vector<int> flatSendIDs(totalSend);
   for (int r = 0; r < numRanks; r++) {
     for (int i = 0; i < (int)sendList[r].size(); i++)
@@ -681,7 +662,7 @@ void pagerank_async(vector<int> &localNodes, vector<vector<int>> &inEdges,
       sendList[r].push_back(localIndex[g]);
   }
 
-  // Pre-compute srcLookup for internal and boundary nodes separately
+  // Pre-computation of srcLookup for internal and boundary nodes separately
   vector<vector<pair<int, int>>> srcLookupInternal(internalNodes.size());
   for (int ii = 0; ii < (int)internalNodes.size(); ii++) {
     int i = internalNodes[ii];
@@ -721,7 +702,7 @@ void pagerank_async(vector<int> &localNodes, vector<vector<int>> &inEdges,
 
   while (globalDiff > tau) {
 
-    // Step 1: pack send buffers
+    // Packing send buffers
     for (int r = 0; r < numRanks; r++) {
       if (r == rank)
         continue;
@@ -729,7 +710,7 @@ void pagerank_async(vector<int> &localNodes, vector<vector<int>> &inEdges,
         sendBufs[r][i] = pr[sendList[r][i]];
     }
 
-    // Step 2: launch ALL non-blocking sends and receives immediately
+    // Launching ALL non-blocking sends and receives immediately
     // this starts the communication in the background
     double commStart = MPI_Wtime();
     for (int r = 0; r < numRanks; r++) {
@@ -741,7 +722,7 @@ void pagerank_async(vector<int> &localNodes, vector<vector<int>> &inEdges,
                 &requests[r * 2 + 1]);
     }
 
-    // Step 3: compute INTERNAL nodes while communication is in progress
+    // Computing INTERNAL nodes while communication is in progress
     // internal nodes don't need ghost values so we can compute them now
     vector<double> newPR(localN, (1.0 - d) / N);
 
@@ -756,11 +737,11 @@ void pagerank_async(vector<int> &localNodes, vector<vector<int>> &inEdges,
       }
     }
 
-    // Step 4: wait for ALL communication to finish
+    // Waiting for ALL communication to finish
     MPI_Waitall(numRanks * 2, requests.data(), MPI_STATUSES_IGNORE);
     commTime += MPI_Wtime() - commStart;
 
-    // Step 5: unpack received ghost values
+    // Unpacking received ghost values
     for (int r = 0; r < numRanks; r++) {
       if (r == rank)
         continue;
@@ -768,7 +749,7 @@ void pagerank_async(vector<int> &localNodes, vector<vector<int>> &inEdges,
         ghostPR[recvList[r][i]] = recvBufs[r][i];
     }
 
-    // Step 6: compute BOUNDARY nodes now that ghost values are available
+    // Computing BOUNDARY nodes now that ghost values are available
     for (int bi = 0; bi < (int)boundaryNodes.size(); bi++) {
       int i = boundaryNodes[bi];
       for (int j = 0; j < (int)srcLookupBoundary[bi].size(); j++) {
@@ -818,6 +799,68 @@ void pagerank_async(vector<int> &localNodes, vector<vector<int>> &inEdges,
   }
 }
 
+//////////////////////////////////////////
+//                                      //
+//          PRINTING FUNCTIONS          //
+//                                      //
+//////////////////////////////////////////
+
+void print_rank_summary(int rank, int numRanks,
+                        vector<int> &localNodes, vector<int> &ghostNodes,
+                        vector<int> &internalNodes, vector<int> &boundaryNodes,
+                        MPI_Comm comm) {
+  // Gather all rank data to rank 0 for clean printing
+  int localN    = localNodes.size();
+  int ghostN    = ghostNodes.size();
+  int internalN = internalNodes.size();
+  int boundaryN = boundaryNodes.size();
+
+  vector<int> allLocal(numRanks), allGhost(numRanks);
+  vector<int> allInternal(numRanks), allBoundary(numRanks);
+
+  MPI_Gather(&localN,    1, MPI_INT, allLocal.data(),    1, MPI_INT, 0, comm);
+  MPI_Gather(&ghostN,    1, MPI_INT, allGhost.data(),    1, MPI_INT, 0, comm);
+  MPI_Gather(&internalN, 1, MPI_INT, allInternal.data(), 1, MPI_INT, 0, comm);
+  MPI_Gather(&boundaryN, 1, MPI_INT, allBoundary.data(), 1, MPI_INT, 0, comm);
+
+  if (rank == 0) {
+    cout << "\n╔═════════════════════════════════════════════════════════════╗\n";
+    cout <<   "║                PARTITION SUMMARY (ALL RANKS)                ║\n";
+    cout <<   "╠══════════╦══════════════╦═════════════╦══════════╦══════════╣\n";
+    cout <<   "║  Rank    ║ Local Nodes  ║ Ghost Nodes ║ Internal ║ Boundary ║\n";
+    cout <<   "╠══════════╬══════════════╬═════════════╬══════════╬══════════╣\n";
+    for (int r = 0; r < numRanks; r++) {
+      printf("║  %-7d ║  %-11d ║  %-10d ║  %-7d ║  %-7d ║\n",
+             r, allLocal[r], allGhost[r], allInternal[r], allBoundary[r]);
+    }
+    cout << "╚══════════╩══════════════╩═════════════╩══════════╩══════════╝\n";
+  }
+}
+
+void print_graph_info(int numNodes, int numEdges, int numRanks, vector<int> &part, MPI_Comm comm) {
+  int rank;
+  MPI_Comm_rank(comm, &rank);
+  if (rank != 0) return;
+
+  cout << "\n╔══════════════════════════════════════════╗\n";
+  cout <<   "║            GRAPH INFORMATION             ║\n";
+  cout <<   "╠══════════════════════════════════════════╣\n";
+  printf(   "║  %-15s : %-22d║\n", "Edges Loaded",  numEdges);
+  printf(   "║  %-15s : %-22d║\n", "Total Nodes",   numNodes);
+  cout <<   "╚══════════════════════════════════════════╝\n";
+
+  cout << "\n┌──────────────────────────────────────────┐\n";
+  cout <<   "│            PARTITION RESULTS             │\n";
+  cout <<   "├──────────────────────────────────────────┤\n";
+
+  vector<int> count(numRanks, 0);
+  for (int i = 0; i < numNodes; i++) count[part[i]]++;
+  for (int r = 0; r < numRanks; r++)
+    printf( "│  Rank %-3d owns %-26d│\n", r, count[r]);
+
+  cout <<   "└──────────────────────────────────────────┘\n";
+}
+
 ////////////////////////////
 //                        //
 //          MAIN          //
@@ -837,8 +880,6 @@ int main(int argc, char *argv[]) {
 
   if (rank == 0) {
     parse_graph(filename, edges, numNodes, nodeRemap);
-    cout << "Edges loaded: " << edges.size() << endl;
-    cout << "Total nodes after remap: " << numNodes << endl;
   }
 
   // Broadcasting numNodes to all ranks
@@ -874,6 +915,9 @@ int main(int argc, char *argv[]) {
   if (rank != 0)
     part.resize(numNodes);
   MPI_Bcast(part.data(), numNodes, MPI_INT, 0, MPI_COMM_WORLD);
+
+  if (rank == 0)
+    print_graph_info(numNodes, edges.size(), numRanks, part, MPI_COMM_WORLD);
 
   // Broadcast edges to all ranks so redistribution works on all ranks
   int edgeCount = 0;
@@ -925,25 +969,29 @@ int main(int argc, char *argv[]) {
   classify_vertices(inEdges, localSet, internalNodes, boundaryNodes);
 
   if (rank == 0)
-    cout << "\n--- Scenario 1: Blocking P2P ---" << endl;
+    cout << "\n┌──────────────────────────────────────────┐\n"
+         <<   "│        Scenario 1: Blocking P2P          │\n"
+         <<   "└──────────────────────────────────────────┘" << endl;
   pagerank_p2p(localNodes, inEdges, ghostNodes, ghostIndex, outDegree, part,
                localSet, numNodes, rank, numRanks, MPI_COMM_WORLD);
 
   if (rank == 0)
-    cout << "\n--- Scenario 2: Collective ---" << endl;
+    cout << "\n┌──────────────────────────────────────────┐\n"
+         <<   "│        Scenario 2: Collective            │\n"
+         <<   "└──────────────────────────────────────────┘" << endl;
   pagerank_collective(localNodes, inEdges, ghostNodes, ghostIndex, outDegree,
                       part, localSet, numNodes, rank, numRanks, MPI_COMM_WORLD);
 
   if (rank == 0)
-    cout << "\n--- Scenario 3: Async Overlap ---" << endl;
+    cout << "\n┌──────────────────────────────────────────┐\n"
+         <<   "│        Scenario 3: Async Overlap         │\n"
+         <<   "└──────────────────────────────────────────┘" << endl;
   pagerank_async(localNodes, inEdges, ghostNodes, ghostIndex, outDegree, part,
                  localSet, internalNodes, boundaryNodes, numNodes, rank,
                  numRanks, MPI_COMM_WORLD);
 
-  // Print summary from each rank
-  cout << "Rank " << rank << ": " << localNodes.size() << " local nodes, "
-       << ghostNodes.size() << " ghost nodes, " << internalNodes.size()
-       << " internal, " << boundaryNodes.size() << " boundary" << endl;
+  // Printing summary from each rank
+  print_rank_summary(rank, numRanks, localNodes, ghostNodes, internalNodes, boundaryNodes, MPI_COMM_WORLD);
 
   MPI_Finalize();
   return 0;
