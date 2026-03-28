@@ -1,5 +1,6 @@
 import random
 import copy
+from itertools import combinations
 
 # ─────────────────────────────────────────
 # ZONE DATA
@@ -79,49 +80,67 @@ def calculate_fitness(chromo):
     # Weights assigned to each zone (0-indexed)
     weights = [0 for i in range(num_zones + 1)]  # +1 to make it 1-indexed for easier mapping
     for i in range(len(chromo)):
-        weights[chromo[i]] += products[i]
+        weights[chromo[i]] += products[i]["weight"]
     
-    for i in range(len(weights)):
+    for i in range(1, num_zones + 1):
         diff = weights[i] - zones[i]["capacity"]
         if diff > 0:
             fitness += diff * 2
     
     # 5.2
     for i in range(len(chromo)):
-        if zones[chromo[i]] != 3 and products[i] in fragile_products:
+        if chromo[i] != 3 and i in fragile_products:
             fitness += 8
     
     # 5.3
     for i in range(len(chromo)):
-        if zones[chromo[i]] != 5 and products[i] in hazardous_products:
+        if chromo[i] != 5 and i in hazardous_products:
             fitness += 10
 
     # 5.4
     for i in range(len(chromo)):
-        if (zones[chromo[i]] == 8 and i in z8_eligible_products) or (zones[chromo[i]] == 4 and products[i] in temp_ctrl_products) or (zones[chromo[i]] == 4 and i in z8_eligible_products):
-            pass
-        else:
+        if i in temp_ctrl_products and chromo[i] not in (4, 8):
             fitness += 9
 
     # 5.5
     for i in range(len(chromo)):
-        if zones[chromo[i]] != 6 and products[i] in high_demand_products:
+        if chromo[i] != 6 and i in high_demand_products:
             fitness += 5
 
     # 5.6
     for i in range(len(chromo)):
-        if zones[chromo[i]] != 1 and products[i] in heavy_products:
+        if chromo[i] != 1 and i in heavy_products:
             fitness += 4
 
     # 5.7
-    #fitness += 3
+    categories = {}
+    for i in range(len(chromo)):
+        cat = products[i]["category"]
+        if cat not in categories:
+            categories[cat] = []
+        categories[cat].append(i)
+    for cat, indices in categories.items():
+        for a, b in combinations(indices, 2):
+            if chromo[a] != chromo[b]:
+                fitness += 3
 
     # 5.8
-    #fitness += 15
+    for z in range(1, num_zones + 1):
+        food_count = 0
+        chem_count = 0
+        
+        for i in range(len(chromo)):
+            if chromo[i] == z:           # product i is in zone z
+                if i in food_products:
+                    food_count += 1
+                if i in chemical_products:
+                    chem_count += 1
+        
+        fitness += 15 * food_count * chem_count
 
     # 5.9
     for i in range(len(chromo)):
-        if zones[chromo[i]] != 8 and i in z8_eligible_products:
+        if chromo[i] == 8 and i not in z8_eligible_products:
             fitness += 12
 
 
@@ -154,14 +173,16 @@ def mutation(chromosome, mutation_rate):
 if __name__ == "__main__":
     # Initialization
     initial_count = 20
-    population = initialize_population(initial_count)
+    #population = initialize_population(initial_count)
     print("Initial Population: ")
-    for i in range(min(len(population), 5)):
-        print(population[i])
+    #for i in range(min(len(population), 5)):
+    #    print(population[i])
 
     hardcoded_chromo = [2, 2, 2, 2, 2, 3, 3, 3, 2, 2,  8,  3,  4,  1,  7,  5,  2,  1,  6,  8]
     #                   P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 P11 P12 P13 P14 P15 P16 P17 P18 P19 P20
 
-    calculate_fitness(hardcoded_chromo)
+    fitval = calculate_fitness(hardcoded_chromo)
+    print("Hard coded fitness val: ", fitval)
+
 
     pass
