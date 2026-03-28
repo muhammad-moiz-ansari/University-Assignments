@@ -1,0 +1,143 @@
+moiz129@master:~/cloud/Assignment-3$ mpirun -np 16 --hostfile ~/hostfile   -x LD_LIBRARY_PATH=/home/moiz129/local/lib   --mca btl_tcp_if_include ens37   --oversubscribe   ./23i-0523_F_A3
+Edges loaded: 5105039
+Total nodes after remap: 875713
+Edge cut: 57269
+Rank 0 owns 54225 nodes
+Rank 1 owns 55807 nodes
+Rank 2 owns 55953 nodes
+Rank 3 owns 54673 nodes
+Rank 4 owns 55897 nodes
+Rank 5 owns 54058 nodes
+Rank 6 owns 54397 nodes
+Rank 7 owns 54440 nodes
+Rank 8 owns 53247 nodes
+Rank 9 owns 54601 nodes
+Rank 10 owns 54709 nodes
+Rank 11 owns 55224 nodes
+Rank 12 owns 56291 nodes
+Rank 13 owns 54093 nodes
+Rank 14 owns 54021 nodes
+Rank 15 owns 54077 nodes
+
+--- Scenario 1: Blocking P2P ---
+Converged in 75 iterations
+Time: 17.055 seconds
+
+Top 5 nodes (rank 0 local):
+  Node 3180 PR=0.000500818
+  Node 1658 PR=0.000392735
+  Node 9845 PR=0.000322461
+  Node 1301 PR=0.000270906
+  Node 4409 PR=0.000270165
+
+--- Scenario 2: Collective ---
+Converged in 75 iterations
+Time: 14.1655 seconds
+
+Top 5 nodes (rank 0 local):
+  Node 3180 PR=0.000500818
+  Node 1658 PR=0.000392735
+  Node 9845 PR=0.000322461
+  Node 1301 PR=0.000270906
+  Node 4409 PR=0.000270165
+
+--- Scenario 3: Async Overlap ---
+Converged in 75 iterations
+Time: 8.26212 seconds
+Communication time: 5.96794 seconds
+Overlap efficiency: 27.7674% of comm hidden
+Rank 6: 54397 local nodes, 2578 ghost nodes, 53271 internal, 1126 boundary
+Rank 5: 54058 local nodes, 2833 ghost nodes, 52822 internal, 1236 boundary
+Rank 7: 54440 local nodes, 2091 ghost nodes, 53354 internal, 1086 boundary
+Rank 2: 55953 local nodes, 3938 ghost nodes, 54370 internal, 1583 boundary
+Rank 3: 54673 local nodes, 3042 ghost nodes, 53247 internal, 1426 boundary
+Rank 4: 55897 local nodes, 2547 ghost nodes, 54775 internal, 1122 boundary
+Rank 1: 55807 local nodes, 3355 ghost nodes, 54387 internal, 1420 boundary
+
+Top 5 nodes (rank 0 local):
+  Node 3180 PR=0.000500818
+  Node 1658 PR=0.000392735
+  Node 9845 PR=0.000322461
+  Node 1301 PR=0.000270906
+  Node 4409 PR=0.000270165
+Rank 0: 54225 local nodes, 2299 ghost nodes, 53176 internal, 1049 boundary
+Rank 8: 53247 local nodes, 3078 ghost nodes, 51802 internal, 1445 boundary
+Rank 9: 54601 local nodes, 2852 ghost nodes, 53274 internal, 1327 boundary
+Rank 10: 54709 local nodes, 2729 ghost nodes, 53609 internal, 1100 boundary
+Rank 11: 55224 local nodes, 2990 ghost nodes, 53934 internal, 1290 boundary
+Rank 12: 56291 local nodes, 2920 ghost nodes, 54974 internal, 1317 boundary
+Rank 13: 54093 local nodes, 2193 ghost nodes, 52975 internal, 1118 boundary
+Rank 14: 54021 local nodes, 2202 ghost nodes, 53011 internal, 1010 boundary
+Rank 15: 54077 local nodes, 2949 ghost nodes, 52688 internal, 1389 boundary
+moiz129@master:~/cloud/Assignment-3$ mpirun -np 16 --hostfile ~/hostfile   -x LD_LIBRARY_PATH=/home/moiz129/local/lib   --mca btl_tcp_if_include ens37   --oversubscribe   ./23i-0523_F_A3
+Edges loaded: 5105039
+Total nodes after remap: 875713
+Edge cut: 57269
+Rank 0 owns 54225 nodes
+Rank 1 owns 55807 nodes
+Rank 2 owns 55953 nodes
+Rank 3 owns 54673 nodes
+Rank 4 owns 55897 nodes
+Rank 5 owns 54058 nodes
+Rank 6 owns 54397 nodes
+Rank 7 owns 54440 nodes
+Rank 8 owns 53247 nodes
+Rank 9 owns 54601 nodes
+Rank 10 owns 54709 nodes
+Rank 11 owns 55224 nodes
+Rank 12 owns 56291 nodes
+Rank 13 owns 54093 nodes
+Rank 14 owns 54021 nodes
+Rank 15 owns 54077 nodes
+
+--- Scenario 1: Blocking P2P ---
+Converged in 75 iterations
+Time: 13.8835 seconds
+
+Top 5 nodes (rank 0 local):
+  Node 3180 PR=0.000500818
+  Node 1658 PR=0.000392735
+  Node 9845 PR=0.000322461
+  Node 1301 PR=0.000270906
+  Node 4409 PR=0.000270165
+
+--- Scenario 2: Collective ---
+Converged in 75 iterations
+Time: 18.9876 seconds
+
+Top 5 nodes (rank 0 local):
+  Node 3180 PR=0.000500818
+  Node 1658 PR=0.000392735
+  Node 9845 PR=0.000322461
+  Node 1301 PR=0.000270906
+  Node 4409 PR=0.000270165
+
+--- Scenario 3: Async Overlap ---
+Converged in 75 iterations
+Time: 9.03646 seconds
+Communication time: 6.77015 seconds
+Overlap efficiency: 25.0796% of comm hidden
+Rank 2: 55953 local nodes, 3938 ghost nodes, 54370 internal, 1583 boundary
+Rank 4: 55897 local nodes, 2547 ghost nodes, 54775 internal, 1122 boundary
+Rank 7: 54440 local nodes, 2091 ghost nodes, 53354 internal, 1086 boundary
+Rank 1: 55807 local nodes, 3355 ghost nodes, 54387 internal, 1420 boundary
+Rank 3: 54673 local nodes, 3042 ghost nodes, 53247 internal, 1426 boundary
+Rank 5: 54058 local nodes, 2833 ghost nodes, 52822 internal, 1236 boundary
+Rank 6: 54397 local nodes, 2578 ghost nodes, 53271 internal, 1126 boundary
+
+Top 5 nodes (rank 0 local):
+  Node 3180 PR=0.000500818
+  Node 1658 PR=0.000392735
+  Node 9845 PR=0.000322461
+  Node 1301 PR=0.000270906
+  Node 4409 PR=0.000270165
+Rank 11: 55224 local nodes, 2990 ghost nodes, 53934 internal, 1290 boundary
+Rank 0: 54225 local nodes, 2299 ghost nodes, 53176 internal, 1049 boundary
+Rank 15: 54077 local nodes, 2949 ghost nodes, 52688 internal, 1389 boundary
+Rank 8: 53247 local nodes, 3078 ghost nodes, 51802 internal, 1445 boundary
+Rank 9: 54601 local nodes, 2852 ghost nodes, 53274 internal, 1327 boundary
+Rank 10: 54709 local nodes, 2729 ghost nodes, 53609 internal, 1100 boundary
+Rank 12: 56291 local nodes, 2920 ghost nodes, 54974 internal, 1317 boundary
+Rank 13: 54093 local nodes, 2193 ghost nodes, 52975 internal, 1118 boundary
+Rank 14: 54021 local nodes, 2202 ghost nodes, 53011 internal, 1010 boundary
+

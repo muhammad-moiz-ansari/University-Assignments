@@ -1,0 +1,189 @@
+moiz129@master:~/cloud/Assignment-3$ mpirun -np 4 --hostfile ~/hostfile   -x LD_LIBRARY_PATH=/home/moiz129/local/lib   --mca btl_tcp_if_include ens37   ./23i-0523_F_A3
+Edges loaded: 5105039
+Total nodes after remap: 875713
+Edge cut: 42821
+Rank 0 owns 215345 nodes
+Rank 1 owns 220176 nodes
+Rank 2 owns 220080 nodes
+Rank 3 owns 220112 nodes
+
+--- Scenario 1: Blocking P2P ---
+Converged in 75 iterations
+Time: 10.6581 seconds
+
+Top 5 nodes (rank 0 local):
+  Node 3178 PR=0.000626991
+  Node 1950 PR=0.000548907
+  Node 3150 PR=0.000497063
+  Node 556 PR=0.000489706
+  Node 13083 PR=0.000461229
+
+--- Scenario 2: Collective ---
+Converged in 75 iterations
+Time: 10.6021 seconds
+
+Top 5 nodes (rank 0 local):
+  Node 3178 PR=0.000626991
+  Node 1950 PR=0.000548907
+  Node 3150 PR=0.000497063
+  Node 556 PR=0.000489706
+  Node 13083 PR=0.000461229
+
+--- Scenario 3: Async Overlap ---
+Converged in 75 iterations
+Time: 9.52745 seconds
+Communication time: 7.48504 seconds
+Overlap efficiency: 21.437% of comm hidden
+Rank 3: 220112 local nodes, 7131 ghost nodes, 216140 internal, 3972 boundary
+Rank 1: 220176 local nodes, 7768 ghost nodes, 216100 internal, 4076 boundary
+Rank 2: 220080 local nodes, 6779 ghost nodes, 216397 internal, 3683 boundary
+
+Top 5 nodes (rank 0 local):
+  Node 3178 PR=0.000626991
+  Node 1950 PR=0.000548907
+  Node 3150 PR=0.000497063
+  Node 556 PR=0.000489706
+  Node 13083 PR=0.000461229
+Rank 0: 215345 local nodes, 6994 ghost nodes, 210920 internal, 4425 boundary
+moiz129@master:~/cloud/Assignment-3$ mpirun -np 4 --hostfile ~/hostfile   -x LD_LIBRARY_PATH=/home/moiz129/local/lib   --mca btl_tcp_if_include ens37   ./23i-0523_F_A3
+Edges loaded: 5105039
+Total nodes after remap: 875713
+Edge cut: 42821
+Rank 0 owns 215345 nodes
+Rank 1 owns 220176 nodes
+Rank 2 owns 220080 nodes
+Rank 3 owns 220112 nodes
+
+--- Scenario 1: Blocking P2P ---
+Converged in 75 iterations
+Time: 10.7146 seconds
+
+Top 5 nodes (rank 0 local):
+  Node 3178 PR=0.000626991
+  Node 1950 PR=0.000548907
+  Node 3150 PR=0.000497063
+  Node 556 PR=0.000489706
+  Node 13083 PR=0.000461229
+
+--- Scenario 2: Collective ---
+Converged in 75 iterations
+Time: 10.6182 seconds
+
+Top 5 nodes (rank 0 local):
+  Node 3178 PR=0.000626991
+  Node 1950 PR=0.000548907
+  Node 3150 PR=0.000497063
+  Node 556 PR=0.000489706
+  Node 13083 PR=0.000461229
+
+--- Scenario 3: Async Overlap ---
+Converged in 75 iterations
+Time: 9.77743 seconds
+Communication time: 7.6692 seconds
+Overlap efficiency: 21.5622% of comm hidden
+Rank 3: 220112 local nodes, 7131 ghost nodes, 216140 internal, 3972 boundary
+Rank 1: 220176 local nodes, 7768 ghost nodes, 216100 internal, 4076 boundary
+Rank 2: 220080 local nodes, 6779 ghost nodes, 216397 internal, 3683 boundary
+
+Top 5 nodes (rank 0 local):
+  Node 3178 PR=0.000626991
+  Node 1950 PR=0.000548907
+  Node 3150 PR=0.000497063
+  Node 556 PR=0.000489706
+  Node 13083 PR=0.000461229
+Rank 0: 215345 local nodes, 6994 ghost nodes, 210920 internal, 4425 boundary
+moiz129@master:~/cloud/Assignment-3$ mpirun -np 4 --hostfile ~/hostfile   -x LD_LIBRARY_PATH=/home/moiz129/local/lib   --mca btl_tcp_if_include ens37   ./23i-0523_F_A3
+Edges loaded: 5105039
+Total nodes after remap: 875713
+Edge cut: 42821
+Rank 0 owns 215345 nodes
+Rank 1 owns 220176 nodes
+Rank 2 owns 220080 nodes
+Rank 3 owns 220112 nodes
+
+--- Scenario 1: Blocking P2P ---
+Converged in 75 iterations
+Time: 12.6488 seconds
+
+Top 5 nodes (rank 0 local):
+  Node 3178 PR=0.000626991
+  Node 1950 PR=0.000548907
+  Node 3150 PR=0.000497063
+  Node 556 PR=0.000489706
+  Node 13083 PR=0.000461229
+
+--- Scenario 2: Collective ---
+Converged in 75 iterations
+Time: 9.64505 seconds
+
+Top 5 nodes (rank 0 local):
+  Node 3178 PR=0.000626991
+  Node 1950 PR=0.000548907
+  Node 3150 PR=0.000497063
+  Node 556 PR=0.000489706
+  Node 13083 PR=0.000461229
+
+--- Scenario 3: Async Overlap ---
+Converged in 75 iterations
+Time: 9.12246 seconds
+Communication time: 7.10377 seconds
+Overlap efficiency: 22.1287% of comm hidden
+Rank 3: 220112 local nodes, 7131 ghost nodes, 216140 internal, 3972 boundary
+Rank 1: 220176 local nodes, 7768 ghost nodes, 216100 internal, 4076 boundary
+Rank 2: 220080 local nodes, 6779 ghost nodes, 216397 internal, 3683 boundary
+
+Top 5 nodes (rank 0 local):
+  Node 3178 PR=0.000626991
+  Node 1950 PR=0.000548907
+  Node 3150 PR=0.000497063
+  Node 556 PR=0.000489706
+  Node 13083 PR=0.000461229
+Rank 0: 215345 local nodes, 6994 ghost nodes, 210920 internal, 4425 boundary
+moiz129@master:~/cloud/Assignment-3$ mpirun -np 4 --hostfile ~/hostfile   -x LD_LIBRARY_PATH=/home/moiz129/local/lib   --mca btl_tcp_if_include ens37   ./23i-0523_F_A3
+Edges loaded: 5105039
+Total nodes after remap: 875713
+Edge cut: 42821
+Rank 0 owns 215345 nodes
+Rank 1 owns 220176 nodes
+Rank 2 owns 220080 nodes
+Rank 3 owns 220112 nodes
+
+--- Scenario 1: Blocking P2P ---
+Converged in 75 iterations
+Time: 9.67168 seconds
+
+Top 5 nodes (rank 0 local):
+  Node 3178 PR=0.000626991
+  Node 1950 PR=0.000548907
+  Node 3150 PR=0.000497063
+  Node 556 PR=0.000489706
+  Node 13083 PR=0.000461229
+
+--- Scenario 2: Collective ---
+Converged in 75 iterations
+Time: 9.5926 seconds
+
+Top 5 nodes (rank 0 local):
+  Node 3178 PR=0.000626991
+  Node 1950 PR=0.000548907
+  Node 3150 PR=0.000497063
+  Node 556 PR=0.000489706
+  Node 13083 PR=0.000461229
+
+--- Scenario 3: Async Overlap ---
+Converged in 75 iterations
+Time: 8.48276 seconds
+Communication time: 6.64139 seconds
+Overlap efficiency: 21.7073% of comm hidden
+Rank 2: 220080 local nodes, 6779 ghost nodes, 216397 internal, 3683 boundary
+Rank 1: 220176 local nodes, 7768 ghost nodes, 216100 internal, 4076 boundary
+Rank 3: 220112 local nodes, 7131 ghost nodes, 216140 internal, 3972 boundary
+
+Top 5 nodes (rank 0 local):
+  Node 3178 PR=0.000626991
+  Node 1950 PR=0.000548907
+  Node 3150 PR=0.000497063
+  Node 556 PR=0.000489706
+  Node 13083 PR=0.000461229
+Rank 0: 215345 local nodes, 6994 ghost nodes, 210920 internal, 4425 boundary
+
