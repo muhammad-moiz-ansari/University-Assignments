@@ -241,6 +241,9 @@ void compute_outdegree(vector<pair<int, int>> &edges, int numNodes,
     outDegree[e.first]++;
 }
 
+// ----------------------------------------------------------
+// ---------------- Scenario 1: Blocking P2P ----------------
+// ----------------------------------------------------------
 void pagerank_p2p(vector<int> &localNodes, vector<vector<int>> &inEdges,
                   vector<int> &ghostNodes, unordered_map<int, int> &ghostIndex,
                   vector<int> &outDegree, vector<int> &part,
@@ -420,6 +423,128 @@ void pagerank_p2p(vector<int> &localNodes, vector<vector<int>> &inEdges,
   }
 }
 
+// --------------------------------------------------------
+// ---------------- Scenario 2: Collective ----------------
+// --------------------------------------------------------
+void pagerank_collective(vector<int> &localNodes, vector<vector<int>> &inEdges,
+                         vector<int> &outDegree, vector<int> &part,
+                         unordered_set<int> &localSet, int numNodes, int rank,
+                         int numRanks, MPI_Comm comm) {
+
+  const double d = 0.85;
+  const double tau = 1e-7;
+  int N = numNodes;
+  int localN = localNodes.size();
+
+  // Build local index map: globalID -> local index
+  unordered_map<int, int> localIndex;
+  for (int i = 0; i < localN; i++)
+    localIndex[localNodes[i]] = i;
+
+  // Initialize local PR values to 1/N
+  vector<double> pr(localN, 1.0 / N);
+
+  // globalPR holds the full PR array for all nodes across all ranks
+  // every rank maintains this after each Allgatherv call
+  vector<double> globalPR(numNodes, 1.0 / N);
+
+  // Allgatherv needs to know how many elements each rank contributes
+  // and where each rank's data starts in the global array
+  vector<int> recvcounts(numRanks, 0);
+  vector<int> displs(numRanks, 0);
+
+  // Count how many local nodes each rank has
+  int myCount = localN;
+  MPI_Allgather(&myCount, 1, MPI_INT, recvcounts.data(), 1, MPI_INT, comm);
+
+  // Compute displacements: where in globalPR does each rank's data go?
+  // But Allgatherv fills a contiguous buffer, so we need a mapping
+  // rank 0's data goes at displs[0], rank 1's at displs[1], etc.
+  displs[0] = 0;
+  for (int r = 1; r < numRanks; r++)
+    displs[r] = displs[r - 1] + recvcounts[r - 1];
+
+  // recvBuf is a contiguous buffer where Allgatherv puts all ranks' PR values
+  // recvBuf layout: [rank0 PR values][rank1 PR values]...
+  vector<double> recvBuf(displs[numRanks - 1] + recvcounts[numRanks - 1]);
+
+  // We need a mapping: for each position in recvBuf, which global node is it?
+  // Since each rank sends its localNodes[] in order, we gather all localNodes
+  // to build this mapping
+  vector<int> allLocalNodes(displs[numRanks - 1] + recvcounts[numRanks - 1]);
+  MPI_Allgatherv(localNodes.data(), localN, MPI_INT, allLocalNodes.data(),
+                 recvcounts.data(), displs.data(), MPI_INT, comm);
+
+  // Pre-compute srcLookup using globalPR indices
+  // srcLookup[i][j] = index into globalPR for the j-th incoming neighbor of
+  // local node i
+  vector<vector<int>> srcLookup(localN);
+  for (int i = 0; i < localN; i++) {
+    for (int src : inEdges[i]) {
+      srcLookup[i].push_back(
+          src); // src is global node ID, index directly into globalPR
+    }
+  }
+
+  // PageRank iterations
+  int iter = 0;
+  double globalDiff = 1.0;
+  double startTime = MPI_Wtime();
+
+  while (globalDiff > tau) {
+    // Allgatherv: every rank shares its current PR values with all other ranks
+    // Each rank sends pr[] (its local values), everyone receives into recvBuf
+    MPI_Allgatherv(pr.data(), localN, MPI_DOUBLE, recvBuf.data(),
+                   recvcounts.data(), displs.data(), MPI_DOUBLE, comm);
+
+    // Map recvBuf values into globalPR using allLocalNodes mapping
+    for (int i = 0; i < (int)allLocalNodes.size(); i++)
+      globalPR[allLocalNodes[i]] = recvBuf[i];
+
+    // Compute new PR values for all local nodes
+    vector<double> newPR(localN, (1.0 - d) / N);
+
+    for (int i = 0; i < localN; i++) {
+      for (int src : srcLookup[i]) {
+        int deg = outDegree[src];
+        if (deg == 0)
+          continue;
+        newPR[i] += d * globalPR[src] / deg;
+      }
+    }
+
+    // Compute local L1 difference
+    double localDiff = 0.0;
+    for (int i = 0; i < localN; i++)
+      localDiff += fabs(newPR[i] - pr[i]);
+
+    // Reduce to get global L1 difference
+    MPI_Allreduce(&localDiff, &globalDiff, 1, MPI_DOUBLE, MPI_SUM, comm);
+
+    pr = newPR;
+    iter++;
+
+    if (rank == 0 && iter % 10 == 0)
+      cout << "Iteration " << iter << " diff: " << globalDiff << endl;
+  }
+
+  double endTime = MPI_Wtime();
+
+  if (rank == 0) {
+    cout << "Converged in " << iter << " iterations" << endl;
+    cout << "Time: " << (endTime - startTime) << " seconds" << endl;
+
+    vector<pair<double, int>> ranked;
+    for (int i = 0; i < localN; i++)
+      ranked.push_back({pr[i], localNodes[i]});
+    sort(ranked.rbegin(), ranked.rend());
+    cout << "\nTop 5 nodes (rank 0 local):" << endl;
+    for (int i = 0; i < 5 && i < (int)ranked.size(); i++)
+      cout << "  Node " << ranked[i].second << " PR=" << ranked[i].first
+           << endl;
+  }
+}
+
 ////////////////////////////
 //                        //
 //          MAIN          //
@@ -526,8 +651,15 @@ int main(int argc, char *argv[]) {
   vector<int> internalNodes, boundaryNodes;
   classify_vertices(inEdges, localSet, internalNodes, boundaryNodes);
 
+  if (rank == 0)
+    cout << "\n--- Scenario 1: Blocking P2P ---" << endl;
   pagerank_p2p(localNodes, inEdges, ghostNodes, ghostIndex, outDegree, part,
                localSet, numNodes, rank, numRanks, MPI_COMM_WORLD);
+
+  if (rank == 0)
+    cout << "\n--- Scenario 2: Collective ---" << endl;
+  pagerank_collective(localNodes, inEdges, outDegree, part, localSet, numNodes,
+                      rank, numRanks, MPI_COMM_WORLD);
 
   // Print summary from each rank
   cout << "Rank " << rank << ": " << localNodes.size() << " local nodes, "
