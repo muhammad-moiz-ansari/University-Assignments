@@ -1,3 +1,9 @@
+// Name:        Muhammad Moiz Ansari
+// Student ID:  23i-0523
+// Section:     F
+// Assignment:  3
+// Course:      CS 3006 - Parallel and Distributive Computing
+
 #include <algorithm>
 #include <cmath>
 #include <fstream>
