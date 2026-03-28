@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <mpi.h>
@@ -240,6 +241,191 @@ void compute_outdegree(vector<pair<int, int>> &edges, int numNodes,
     outDegree[e.first]++;
 }
 
+void pagerank_p2p(vector<int> &localNodes, vector<vector<int>> &inEdges,
+                  vector<int> &ghostNodes, unordered_map<int, int> &ghostIndex,
+                  vector<int> &outDegree, vector<int> &part,
+                  unordered_set<int> &localSet, int numNodes, int rank,
+                  int numRanks, MPI_Comm comm) {
+
+  const double d = 0.85;
+  const double tau = 1e-7;
+  int N = numNodes;
+  int localN = localNodes.size();
+
+  // Initialize all local PR values to 1/N
+  vector<double> pr(localN, 1.0 / N);
+
+  // Ghost buffer holds PR values of remote nodes we need
+  vector<double> ghostPR(ghostNodes.size(), 1.0 / N);
+
+  // Build local index map: globalID -> local index
+  unordered_map<int, int> localIndex;
+  for (int i = 0; i < localN; i++)
+    localIndex[localNodes[i]] = i;
+
+  // Pre-compute communication structure (done once before iterations)
+  // For each rank r: which of our local nodes does rank r need from us?
+  // Answer: whichever of our local nodes appear as ghosts on rank r
+  // We find this by checking: for each ghost node g we need,
+  // part[g] tells us which rank owns g -> that rank needs to send it to us
+  // Symmetrically: if rank r has g as ghost and part[g]==rank, we send to r
+
+  // sendList[r] = local node indices we must send to rank r each iteration
+  vector<vector<int>> sendList(numRanks);
+  // recvList[r] = ghost indices we receive from rank r each iteration
+  vector<vector<int>> recvList(numRanks);
+
+  // For each ghost node we need, find its owner rank
+  for (int gi = 0; gi < (int)ghostNodes.size(); gi++) {
+    int g = ghostNodes[gi];
+    int owner = part[g];
+    recvList[owner].push_back(gi); // we receive ghost index gi from rank owner
+  }
+
+  // For each other rank, tell them which of their nodes we need and find out
+  // which of our nodes they need
+  for (int r = 0; r < numRanks; r++) {
+    if (r == rank)
+      continue;
+
+    vector<int> needIDs(recvList[r].size());
+    for (int i = 0; i < (int)recvList[r].size(); i++)
+      needIDs[i] = ghostNodes[recvList[r][i]];
+    int needCount = needIDs.size();
+
+    int theirNeedCount;
+    vector<int> theirNeedIDs;
+
+    if (rank < r) {
+      // lower rank sends first, then receives
+      MPI_Send(&needCount, 1, MPI_INT, r, 10, comm);
+      // send the global IDs of nodes we need from rank r
+      MPI_Send(needIDs.data(), needCount, MPI_INT, r, 11, comm);
+      MPI_Recv(&theirNeedCount, 1, MPI_INT, r, 10, comm, MPI_STATUS_IGNORE);
+      theirNeedIDs.resize(theirNeedCount);
+      MPI_Recv(theirNeedIDs.data(), theirNeedCount, MPI_INT, r, 11, comm,
+               MPI_STATUS_IGNORE);
+    } else {
+      // higher rank receives first, then sends
+      // receive count of nodes rank r needs from us
+      MPI_Recv(&theirNeedCount, 1, MPI_INT, r, 10, comm, MPI_STATUS_IGNORE);
+      theirNeedIDs.resize(theirNeedCount);
+      // receive the global IDs rank r needs from us
+      MPI_Recv(theirNeedIDs.data(), theirNeedCount, MPI_INT, r, 11, comm,
+               MPI_STATUS_IGNORE);
+      MPI_Send(&needCount, 1, MPI_INT, r, 10, comm);
+      MPI_Send(needIDs.data(), needCount, MPI_INT, r, 11, comm);
+    }
+
+    // convert those global IDs to local indices for fast lookup during
+    // iterations
+    for (int g : theirNeedIDs)
+      sendList[r].push_back(localIndex[g]);
+  }
+
+  // Pre-compute source lookup for each local node's incoming edges
+  // srcType[i][j] = 0 means local, 1 means ghost
+  // srcIdx[i][j]  = index into pr[] or ghostPR[]
+  vector<vector<pair<int, int>>> srcLookup(localN);
+  for (int i = 0; i < localN; i++) {
+    for (int src : inEdges[i]) {
+      if (localSet.count(src))
+        srcLookup[i].push_back({0, localIndex[src]});
+      else
+        srcLookup[i].push_back({1, ghostIndex[src]});
+    }
+  }
+
+  // PageRank iterations
+  int iter = 0;
+  double globalDiff = 1.0;
+
+  double startTime = MPI_Wtime();
+
+  while (globalDiff > tau) {
+    // Exchange ghost PR values with other ranks
+    for (int r = 0; r < numRanks; r++) {
+      if (r == rank)
+        continue;
+
+      // Pack PR values to send to rank r
+      vector<double> sendBuf(sendList[r].size());
+      for (int i = 0; i < (int)sendList[r].size(); i++)
+        sendBuf[i] = pr[sendList[r][i]];
+
+      vector<double> recvBuf(recvList[r].size());
+
+      // Send our values, receive their values
+      if (rank < r) {
+        MPI_Send(sendBuf.data(), sendBuf.size(), MPI_DOUBLE, r, 20, comm);
+        MPI_Recv(recvBuf.data(), recvBuf.size(), MPI_DOUBLE, r, 20, comm,
+                 MPI_STATUS_IGNORE);
+      } else {
+        MPI_Recv(recvBuf.data(), recvBuf.size(), MPI_DOUBLE, r, 20, comm,
+                 MPI_STATUS_IGNORE);
+        MPI_Send(sendBuf.data(), sendBuf.size(), MPI_DOUBLE, r, 20, comm);
+      }
+
+      // Store received values in ghost buffer
+      for (int i = 0; i < (int)recvList[r].size(); i++)
+        ghostPR[recvList[r][i]] = recvBuf[i];
+    }
+
+    // Compute new PR values for all local nodes
+    vector<double> newPR(localN, (1.0 - d) / N);
+
+    for (int i = 0; i < localN; i++) {
+      for (int j = 0; j < (int)srcLookup[i].size(); j++) {
+        int src = inEdges[i][j];
+        int deg = outDegree[src];
+        if (deg == 0)
+          continue;
+        double srcPR = (srcLookup[i][j].first == 0)
+                           ? pr[srcLookup[i][j].second]
+                           : ghostPR[srcLookup[i][j].second];
+        newPR[i] += d * srcPR / deg;
+      }
+    }
+
+    // Compute local L1 difference
+    double localDiff = 0.0;
+    for (int i = 0; i < localN; i++)
+      localDiff += fabs(newPR[i] - pr[i]);
+
+    // Reduce to get global L1 difference across all ranks
+    MPI_Allreduce(&localDiff, &globalDiff, 1, MPI_DOUBLE, MPI_SUM, comm);
+
+    pr = newPR;
+    iter++;
+
+    if (rank == 0 && iter % 10 == 0)
+      cout << "Iteration " << iter << " diff: " << globalDiff << endl;
+  }
+
+  double endTime = MPI_Wtime();
+
+  if (rank == 0) {
+    cout << "Converged in " << iter << " iterations" << endl;
+    cout << "Time: " << (endTime - startTime) << " seconds" << endl;
+
+    // Print top 5 nodes by PR value (local to rank 0 only for now)
+    vector<pair<double, int>> ranked;
+    for (int i = 0; i < localN; i++)
+      ranked.push_back({pr[i], localNodes[i]});
+    sort(ranked.rbegin(), ranked.rend());
+    cout << "\nTop 5 nodes (rank 0 local):" << endl;
+    for (int i = 0; i < 5 && i < (int)ranked.size(); i++)
+      cout << "  Node " << ranked[i].second << " PR=" << ranked[i].first
+           << endl;
+  }
+}
+
+////////////////////////////
+//                        //
+//          MAIN          //
+//                        //
+////////////////////////////
+
 int main(int argc, char *argv[]) {
   string filename = "/home/moiz129/cloud/web-Google.txt";
   vector<pair<int, int>> edges;
@@ -339,6 +525,9 @@ int main(int argc, char *argv[]) {
 
   vector<int> internalNodes, boundaryNodes;
   classify_vertices(inEdges, localSet, internalNodes, boundaryNodes);
+
+  pagerank_p2p(localNodes, inEdges, ghostNodes, ghostIndex, outDegree, part,
+               localSet, numNodes, rank, numRanks, MPI_COMM_WORLD);
 
   // Print summary from each rank
   cout << "Rank " << rank << ": " << localNodes.size() << " local nodes, "
