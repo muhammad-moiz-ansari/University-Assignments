@@ -401,8 +401,8 @@ void pagerank_p2p(vector<int> &localNodes, vector<vector<int>> &inEdges,
     pr = newPR;
     iter++;
 
-    if (rank == 0 && iter % 10 == 0)
-      cout << "Iteration " << iter << " diff: " << globalDiff << endl;
+    // if (rank == 0 && iter % 10 == 0)
+    //  cout << "Iteration " << iter << " diff: " << globalDiff << endl;
   }
 
   double endTime = MPI_Wtime();
@@ -423,9 +423,9 @@ void pagerank_p2p(vector<int> &localNodes, vector<vector<int>> &inEdges,
   }
 }
 
-// --------------------------------------------------------
+// ========================================================
 // ---------------- Scenario 2: Collective ----------------
-// --------------------------------------------------------
+// ========================================================
 void pagerank_collective(vector<int> &localNodes, vector<vector<int>> &inEdges,
                          vector<int> &outDegree, vector<int> &part,
                          unordered_set<int> &localSet, int numNodes, int rank,
@@ -524,8 +524,8 @@ void pagerank_collective(vector<int> &localNodes, vector<vector<int>> &inEdges,
     pr = newPR;
     iter++;
 
-    if (rank == 0 && iter % 10 == 0)
-      cout << "Iteration " << iter << " diff: " << globalDiff << endl;
+    // if (rank == 0 && iter % 10 == 0)
+    //  cout << "Iteration " << iter << " diff: " << globalDiff << endl;
   }
 
   double endTime = MPI_Wtime();
@@ -533,6 +533,208 @@ void pagerank_collective(vector<int> &localNodes, vector<vector<int>> &inEdges,
   if (rank == 0) {
     cout << "Converged in " << iter << " iterations" << endl;
     cout << "Time: " << (endTime - startTime) << " seconds" << endl;
+
+    vector<pair<double, int>> ranked;
+    for (int i = 0; i < localN; i++)
+      ranked.push_back({pr[i], localNodes[i]});
+    sort(ranked.rbegin(), ranked.rend());
+    cout << "\nTop 5 nodes (rank 0 local):" << endl;
+    for (int i = 0; i < 5 && i < (int)ranked.size(); i++)
+      cout << "  Node " << ranked[i].second << " PR=" << ranked[i].first
+           << endl;
+  }
+}
+
+// ========================================================
+// ----------- Scenario 3: Asynchronous Overlap -----------
+// ========================================================
+void pagerank_async(vector<int> &localNodes, vector<vector<int>> &inEdges,
+                    vector<int> &ghostNodes,
+                    unordered_map<int, int> &ghostIndex, vector<int> &outDegree,
+                    vector<int> &part, unordered_set<int> &localSet,
+                    vector<int> &internalNodes, vector<int> &boundaryNodes,
+                    int numNodes, int rank, int numRanks, MPI_Comm comm) {
+
+  const double d = 0.85;
+  const double tau = 1e-7;
+  int N = numNodes;
+  int localN = localNodes.size();
+
+  // Build local index map: globalID -> local index
+  unordered_map<int, int> localIndex;
+  for (int i = 0; i < localN; i++)
+    localIndex[localNodes[i]] = i;
+
+  // Initialize PR values
+  vector<double> pr(localN, 1.0 / N);
+  vector<double> ghostPR(ghostNodes.size(), 1.0 / N);
+
+  // Build send/recv lists same as Scenario 1
+  vector<vector<int>> sendList(numRanks);
+  vector<vector<int>> recvList(numRanks);
+
+  for (int gi = 0; gi < (int)ghostNodes.size(); gi++) {
+    int g = ghostNodes[gi];
+    int owner = part[g];
+    recvList[owner].push_back(gi);
+  }
+
+  for (int r = 0; r < numRanks; r++) {
+    if (r == rank)
+      continue;
+
+    vector<int> needIDs(recvList[r].size());
+    for (int i = 0; i < (int)recvList[r].size(); i++)
+      needIDs[i] = ghostNodes[recvList[r][i]];
+    int needCount = needIDs.size();
+    int theirNeedCount;
+    vector<int> theirNeedIDs;
+
+    if (rank < r) {
+      MPI_Send(&needCount, 1, MPI_INT, r, 10, comm);
+      MPI_Send(needIDs.data(), needCount, MPI_INT, r, 11, comm);
+      MPI_Recv(&theirNeedCount, 1, MPI_INT, r, 10, comm, MPI_STATUS_IGNORE);
+      theirNeedIDs.resize(theirNeedCount);
+      MPI_Recv(theirNeedIDs.data(), theirNeedCount, MPI_INT, r, 11, comm,
+               MPI_STATUS_IGNORE);
+    } else {
+      MPI_Recv(&theirNeedCount, 1, MPI_INT, r, 10, comm, MPI_STATUS_IGNORE);
+      theirNeedIDs.resize(theirNeedCount);
+      MPI_Recv(theirNeedIDs.data(), theirNeedCount, MPI_INT, r, 11, comm,
+               MPI_STATUS_IGNORE);
+      MPI_Send(&needCount, 1, MPI_INT, r, 10, comm);
+      MPI_Send(needIDs.data(), needCount, MPI_INT, r, 11, comm);
+    }
+
+    for (int g : theirNeedIDs)
+      sendList[r].push_back(localIndex[g]);
+  }
+
+  // Pre-compute srcLookup for internal and boundary nodes separately
+  vector<vector<pair<int, int>>> srcLookupInternal(internalNodes.size());
+  for (int ii = 0; ii < (int)internalNodes.size(); ii++) {
+    int i = internalNodes[ii];
+    for (int src : inEdges[i]) {
+      srcLookupInternal[ii].push_back({0, localIndex[src]});
+    }
+  }
+
+  vector<vector<pair<int, int>>> srcLookupBoundary(boundaryNodes.size());
+  for (int bi = 0; bi < (int)boundaryNodes.size(); bi++) {
+    int i = boundaryNodes[bi];
+    for (int src : inEdges[i]) {
+      if (localSet.count(src))
+        srcLookupBoundary[bi].push_back({0, localIndex[src]});
+      else
+        srcLookupBoundary[bi].push_back({1, ghostIndex[src]});
+    }
+  }
+
+  // send/recv buffers allocated once outside loop
+  vector<vector<double>> sendBufs(numRanks), recvBufs(numRanks);
+  for (int r = 0; r < numRanks; r++) {
+    sendBufs[r].resize(sendList[r].size());
+    recvBufs[r].resize(recvList[r].size());
+  }
+
+  // MPI request handles for non-blocking operations
+  // 2 requests per rank pair: one Isend + one Irecv
+  vector<MPI_Request> requests(numRanks * 2, MPI_REQUEST_NULL);
+
+  int iter = 0;
+  double globalDiff = 1.0;
+
+  // Timing variables to measure overlap efficiency
+  double commTime = 0.0, totalTime = 0.0;
+  double startTime = MPI_Wtime();
+
+  while (globalDiff > tau) {
+
+    // Step 1: pack send buffers
+    for (int r = 0; r < numRanks; r++) {
+      if (r == rank)
+        continue;
+      for (int i = 0; i < (int)sendList[r].size(); i++)
+        sendBufs[r][i] = pr[sendList[r][i]];
+    }
+
+    // Step 2: launch ALL non-blocking sends and receives immediately
+    // this starts the communication in the background
+    double commStart = MPI_Wtime();
+    for (int r = 0; r < numRanks; r++) {
+      if (r == rank)
+        continue;
+      MPI_Isend(sendBufs[r].data(), sendBufs[r].size(), MPI_DOUBLE, r, 20, comm,
+                &requests[r * 2]);
+      MPI_Irecv(recvBufs[r].data(), recvBufs[r].size(), MPI_DOUBLE, r, 20, comm,
+                &requests[r * 2 + 1]);
+    }
+
+    // Step 3: compute INTERNAL nodes while communication is in progress
+    // internal nodes don't need ghost values so we can compute them now
+    vector<double> newPR(localN, (1.0 - d) / N);
+
+    for (int ii = 0; ii < (int)internalNodes.size(); ii++) {
+      int i = internalNodes[ii];
+      for (int j = 0; j < (int)srcLookupInternal[ii].size(); j++) {
+        int src = inEdges[i][j];
+        int deg = outDegree[src];
+        if (deg == 0)
+          continue;
+        newPR[i] += d * pr[srcLookupInternal[ii][j].second] / deg;
+      }
+    }
+
+    // Step 4: wait for ALL communication to finish
+    MPI_Waitall(numRanks * 2, requests.data(), MPI_STATUSES_IGNORE);
+    commTime += MPI_Wtime() - commStart;
+
+    // Step 5: unpack received ghost values
+    for (int r = 0; r < numRanks; r++) {
+      if (r == rank)
+        continue;
+      for (int i = 0; i < (int)recvList[r].size(); i++)
+        ghostPR[recvList[r][i]] = recvBufs[r][i];
+    }
+
+    // Step 6: compute BOUNDARY nodes now that ghost values are available
+    for (int bi = 0; bi < (int)boundaryNodes.size(); bi++) {
+      int i = boundaryNodes[bi];
+      for (int j = 0; j < (int)srcLookupBoundary[bi].size(); j++) {
+        int src = inEdges[i][j];
+        int deg = outDegree[src];
+        if (deg == 0)
+          continue;
+        double srcPR = (srcLookupBoundary[bi][j].first == 0)
+                           ? pr[srcLookupBoundary[bi][j].second]
+                           : ghostPR[srcLookupBoundary[bi][j].second];
+        newPR[i] += d * srcPR / deg;
+      }
+    }
+
+    // Compute local L1 difference
+    double localDiff = 0.0;
+    for (int i = 0; i < localN; i++)
+      localDiff += fabs(newPR[i] - pr[i]);
+
+    MPI_Allreduce(&localDiff, &globalDiff, 1, MPI_DOUBLE, MPI_SUM, comm);
+
+    pr = newPR;
+    iter++;
+
+    // if (rank == 0 && iter % 10 == 0)
+    //  cout << "Iteration " << iter << " diff: " << globalDiff << endl;
+  }
+
+  double endTime = MPI_Wtime();
+  totalTime = endTime - startTime;
+
+  if (rank == 0) {
+    cout << "Converged in " << iter << " iterations" << endl;
+    cout << "Time: " << totalTime << " seconds" << endl;
+    cout << "Communication time: " << commTime << " seconds" << endl;
+    cout << "Overlap efficiency: " << (1.0 - commTime / totalTime) * 100.0
+         << "% of comm hidden" << endl;
 
     vector<pair<double, int>> ranked;
     for (int i = 0; i < localN; i++)
@@ -660,6 +862,12 @@ int main(int argc, char *argv[]) {
     cout << "\n--- Scenario 2: Collective ---" << endl;
   pagerank_collective(localNodes, inEdges, outDegree, part, localSet, numNodes,
                       rank, numRanks, MPI_COMM_WORLD);
+
+  if (rank == 0)
+    cout << "\n--- Scenario 3: Async Overlap ---" << endl;
+  pagerank_async(localNodes, inEdges, ghostNodes, ghostIndex, outDegree, part,
+                 localSet, internalNodes, boundaryNodes, numNodes, rank,
+                 numRanks, MPI_COMM_WORLD);
 
   // Print summary from each rank
   cout << "Rank " << rank << ": " << localNodes.size() << " local nodes, "
