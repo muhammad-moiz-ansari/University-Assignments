@@ -319,7 +319,7 @@ def export_to_excel(best_chromo, best_fitness, filename="warehouse_storage_plan.
 if __name__ == "__main__":
     # Initialization
     pop_size = 200
-    max_gen = 400
+    max_gen = 800
     tournament_size = 3
     base_mutation_rate = 0.05   # 5% chance for each gene to mutate
     mutation_rate = base_mutation_rate
