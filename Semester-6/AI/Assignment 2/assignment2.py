@@ -68,13 +68,15 @@ z8_eligible_products = {1, 5, 10, 16}
 food_products     = {i for i, p in enumerate(products) if p["category"] == "Food"}
 chemical_products = {i for i, p in enumerate(products) if p["category"] == "Chemical"}
 
+num_zones = 8
+num_products = len(products)
+
 # ─────────────────────────────────────────
 # FUNCTION DEFINITIONS
 # ─────────────────────────────────────────
 
 def calculate_fitness(chromo):
     fitness = 0
-    num_zones = 8
 
     # 5.1
     # Weights assigned to each zone (0-indexed)
@@ -154,35 +156,86 @@ def calc_population_fitness(population):
     return fitnesses
 
 def initialize_population(pop_size):
+    population = [[random.randint(1, num_zones) for i in range(num_products)] for j in range(pop_size)]
 
-    pass
+    return population
 
-def selection(population, fitnesses):
+def selection(population, fitnesses, k = 3):
+    # Tournament size (k) is 3 by default
+    parent1 = tournament_selection(population, fitnesses, k)
+    parent2 = tournament_selection(population, fitnesses, k)
+    
+    return parent1, parent2
 
-    pass
+def tournament_selection(population, fitnesses, k):
+    rand_indices = []
+    combined_arr = []
+    pop_size = len(population)
+
+    while len(rand_indices) < k:
+        ind = random.randint(0, pop_size - 1)
+        if ind not in rand_indices:
+            rand_indices.append(ind)
+            combined_arr.append((population[ind], fitnesses[ind]))
+
+    
+    combined_arr.sort(key=lambda x: x[1])   # Sort by fitness (ascending)
+    selected_chromo = combined_arr[0][0]    # Chromosome with lowest fitness
+
+    return selected_chromo
 
 def crossover(parent1, parent2):
+    pt1 = random.randint(3, (num_products // 2) - (num_products // 4))                  # Crossover point 1
+    pt2 = random.randint((num_products // 2) + (num_products // 4), num_products - 3)   # Crossover point 2
+
+    child1 = parent1[:pt1] + parent2[pt1:pt2] + parent1[pt2:]
+    child2 = parent2[:pt1] + parent1[pt1:pt2] + parent2[pt2:]
     
-    pass
+    return child1, child2
 
 def mutation(chromosome, mutation_rate):
-
-    pass
+    for i in range(len(chromosome)):
+        if random.random() < mutation_rate:     # Returns between 0 and 1
+            chromosome[i] = random.randint(1, num_zones)
 
 
 if __name__ == "__main__":
     # Initialization
     initial_count = 20
-    #population = initialize_population(initial_count)
+    max_count = 100
+    population = initialize_population(initial_count)
     print("Initial Population: ")
-    #for i in range(min(len(population), 5)):
-    #    print(population[i])
+    for i in range(min(len(population), 5)):
+        print(population[i])
 
     hardcoded_chromo = [2, 2, 2, 2, 2, 3, 3, 3, 2, 2,  8,  3,  4,  1,  7,  5,  2,  1,  6,  8]
     #                   P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 P11 P12 P13 P14 P15 P16 P17 P18 P19 P20
+    #print(hardcoded_chromo)
 
-    fitval = calculate_fitness(hardcoded_chromo)
-    print("Hard coded fitness val: ", fitval)
+    num_gen = 1500
+    tournament_size = 3
+    min_fitness = calculate_fitness(population[0])   # Initialize with fitness of first chromo
 
+    for i in range(num_gen) or min_fitness > 0:
+        fitnesses = calc_population_fitness(population)
+
+        parent1, parent2 = selection(population, fitnesses, tournament_size)
+        child1, child2 = crossover(parent1, parent2)
+        population.append(child1)
+        population.append(child2)
+        mutation(child1, 0.1)   # Mutation rate of 10%
+        mutation(child2, 0.1)
+        population.append(child1)
+        population.append(child2)
+        population.sort(key=lambda chromo: calculate_fitness(chromo))  # Sort population by fitness (ascending)
+        population = population[:max_count]  # Keep only the top 'max_count' chromosomes
+        min_fitness = min(fitnesses)
+    
+    best_idx = fitnesses.index(min_fitness)
+    best_chromo = population[best_idx]
+
+    print('\n===== FINAL RESULTS =====')
+    print(f'Best Chromosome: {best_chromo}')
+    print(f'Best Fitness: {min_fitness}')
 
     pass
