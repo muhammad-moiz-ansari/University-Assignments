@@ -78,7 +78,7 @@ num_products = len(products)
 def calculate_fitness(chromo):
     fitness = 0
 
-    # 5.1
+    # 5.1 - Zone Weight Capacity
     # Weights assigned to each zone (0-indexed)
     weights = [0 for i in range(num_zones + 1)]  # +1 to make it 1-indexed for easier mapping
     for i in range(len(chromo)):
@@ -89,32 +89,32 @@ def calculate_fitness(chromo):
         if diff > 0:
             fitness += diff * 2
     
-    # 5.2
+    # 5.2 - Fragile Product Protection
     for i in range(len(chromo)):
         if chromo[i] != 3 and i in fragile_products:
             fitness += 8
     
-    # 5.3
+    # 5.3 - Hazardous Material Isolation
     for i in range(len(chromo)):
         if chromo[i] != 5 and i in hazardous_products:
             fitness += 10
 
-    # 5.4
+    # 5.4 - Temperature-Controlled Storage
     for i in range(len(chromo)):
         if i in temp_ctrl_products and chromo[i] not in (4, 8):
             fitness += 9
 
-    # 5.5
+    # 5.5 - Fast-Moving Product Accessibility
     for i in range(len(chromo)):
         if chromo[i] != 6 and i in high_demand_products:
             fitness += 5
 
-    # 5.6
+    # 5.6 - Heavy Item Placement
     for i in range(len(chromo)):
         if chromo[i] != 1 and i in heavy_products:
             fitness += 4
 
-    # 5.7
+    # 5.7 - Product Compatibility
     categories = {}
     for i in range(len(chromo)):
         cat = products[i]["category"]
@@ -126,7 +126,7 @@ def calculate_fitness(chromo):
             if chromo[a] != chromo[b]:
                 fitness += 3
 
-    # 5.8
+    # 5.8 - Food and Chemical Incompatibility
     for z in range(1, num_zones + 1):
         food_count = 0
         chem_count = 0
@@ -140,7 +140,7 @@ def calculate_fitness(chromo):
         
         fitness += 15 * food_count * chem_count
 
-    # 5.9
+    # 5.9 - Refrigerated Loading Dock Restriction
     for i in range(len(chromo)):
         if chromo[i] == 8 and i not in z8_eligible_products:
             fitness += 12
@@ -197,45 +197,91 @@ def mutation(chromosome, mutation_rate):
     for i in range(len(chromosome)):
         if random.random() < mutation_rate:     # Returns between 0 and 1
             chromosome[i] = random.randint(1, num_zones)
+    return chromosome
 
 
 if __name__ == "__main__":
     # Initialization
-    initial_count = 20
-    max_count = 100
-    population = initialize_population(initial_count)
+    pop_size = 200
+    max_gen = 1000
+    tournament_size = 3
+    base_mutation_rate = 0.05   # 5% chance for each gene to mutate
+    mutation_rate = base_mutation_rate
+    num_pairs_per_gen = 20      # 20 pairs = 40 children per generation
+    no_improvement_count = 0
+    no_improvement_counter = 0
+    max_count = 200
+
+    population = initialize_population(pop_size)
+
     print("Initial Population: ")
     for i in range(min(len(population), 5)):
         print(population[i])
+    print("...\n")
 
-    hardcoded_chromo = [2, 2, 2, 2, 2, 3, 3, 3, 2, 2,  8,  3,  4,  1,  7,  5,  2,  1,  6,  8]
-    #                   P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 P11 P12 P13 P14 P15 P16 P17 P18 P19 P20
-    #print(hardcoded_chromo)
-
-    num_gen = 1500
-    tournament_size = 3
-    min_fitness = calculate_fitness(population[0])   # Initialize with fitness of first chromo
-
-    for i in range(num_gen) or min_fitness > 0:
-        fitnesses = calc_population_fitness(population)
-
-        parent1, parent2 = selection(population, fitnesses, tournament_size)
-        child1, child2 = crossover(parent1, parent2)
-        population.append(child1)
-        population.append(child2)
-        mutation(child1, 0.1)   # Mutation rate of 10%
-        mutation(child2, 0.1)
-        population.append(child1)
-        population.append(child2)
-        population.sort(key=lambda chromo: calculate_fitness(chromo))  # Sort population by fitness (ascending)
-        population = population[:max_count]  # Keep only the top 'max_count' chromosomes
-        min_fitness = min(fitnesses)
+    best_chromo = None
+    best_fitness = float('inf')
     
-    best_idx = fitnesses.index(min_fitness)
-    best_chromo = population[best_idx]
+    for gen in range(max_gen):
+        # Calculate all fitnesses
+        fitnesses = calc_population_fitness(population)
+        
+        # Keep track of best fitness so far
+        gen_best_fitness = min(fitnesses)
+        elite = population[fitnesses.index(gen_best_fitness)]        # Keeping best chromosome (elitism)
+        if gen_best_fitness < best_fitness:
+            best_fitness = gen_best_fitness
+            best_chromo = population[fitnesses.index(gen_best_fitness)]
+            no_improvement_count = 0
+            no_improvement_counter = 0
+            mutation_rate = base_mutation_rate
+            print(f"Gen {gen + 1}: New best fitness = {best_fitness}")
+        else:
+            no_improvement_count += 1
+            no_improvement_counter += 1
+            if no_improvement_count > 50:
+                mutation_rate = min(0.4, mutation_rate + 0.05)  # Increase mutation rate if no improvement for 50 generations (up to 40%)
+                no_improvement_count = 0                        # Reset counter after increasing mutation rate
+            if (gen + 1) % 100 == 0:
+                print(f"Gen {gen + 1}: No improvement for {no_improvement_counter} generations, mutation rate = {mutation_rate:.2f}")
 
+        # Check if goal reached and stop if so
+        if best_fitness == 0:
+            print(f"Best solution found at generation {gen + 1}!")
+            break
+
+        # Selection, Crossover, Mutation
+        for skjfk in range(num_pairs_per_gen):
+            parent1, parent2 = selection(population, fitnesses, tournament_size)
+            child1, child2 = crossover(parent1, parent2)
+            child1 = mutation(child1, mutation_rate)
+            child2 = mutation(child2, mutation_rate)
+            population.append(child1)
+            population.append(child2)
+            fitnesses = calc_population_fitness(population)
+        
+        # Add elite chromosome back to population
+        population.append(elite)   
+
+        # Sort and keep best chromosomes, discard the bad ones
+        population.sort(key=lambda chromo: calculate_fitness(chromo))   # Sort population by fitness (ascending)
+        population = population[:max_count]                             # Keep only the top 'max_count' chromosomes
+        
+    best_chromo = population[0]
+    best_fitness = calculate_fitness(best_chromo)
+
+    # Best Solution Possible: 78
     print('\n===== FINAL RESULTS =====')
+    print(f"Generations: {gen + 1}")
     print(f'Best Chromosome: {best_chromo}')
-    print(f'Best Fitness: {min_fitness}')
+    print(f'Best Fitness: {best_fitness}')
+
+    print('\n===== OPTIMAL STORAGE PLAN =====')
+    for z in range(1, num_zones + 1):
+        zone_products = [products[i]["name"] for i in range(num_products) if best_chromo[i] == z]
+        if zone_products:
+            print(f'Z{z}: {", ".join(zone_products)}')
+        else:
+            print(f'Z{z}: (empty)')
 
     pass
