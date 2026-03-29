@@ -1,6 +1,8 @@
 import random
-import copy
 from itertools import combinations
+import pandas as pd
+from openpyxl import load_workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
 # ─────────────────────────────────────────
 # ZONE DATA
@@ -199,11 +201,125 @@ def mutation(chromosome, mutation_rate):
             chromosome[i] = random.randint(1, num_zones)
     return chromosome
 
+# BONUS TASK: Excel Output
+def export_to_excel(best_chromo, best_fitness, filename="warehouse_storage_plan.xlsx"):
+    
+    # ─────────────────── Sheet 1: Product Allocation ───────────────────
+    rows = []
+    for i in range(num_products):
+        zone = best_chromo[i]
+        p = products[i]
+        rows.append({
+            "Product":          p["name"],
+            "Weight (kg)":      p["weight"],
+            "Category":         p["category"],
+            "Assigned Zone":    f"Z{zone}",
+            "Zone Name":        zones[zone]["name"],
+            "Fragile":          "Yes" if p["fragile"] else "No",
+            "Hazardous":        "Yes" if p["hazardous"] else "No",
+            "Temp Controlled":  "Yes" if p["temp_controlled"] else "No",
+            "High Demand":      "Yes" if p["high_demand"] else "No",
+        })
+    df1 = pd.DataFrame(rows)
+
+    # ────────────────────── Sheet 2: Zone Summary ──────────────────────
+    zone_rows = []
+    for z in range(1, num_zones + 1):
+        zone_prods  = [products[i]["name"] for i in range(num_products) if best_chromo[i] == z]
+        used_weight = sum(products[i]["weight"] for i in range(num_products) if best_chromo[i] == z)
+        capacity    = zones[z]["capacity"]
+        zone_rows.append({
+            "Zone":             f"Z{z}",
+            "Zone Name":        zones[z]["name"],
+            "Capacity (kg)":    capacity,
+            "Used (kg)":        used_weight,
+            "Remaining (kg)":   capacity - used_weight,
+            "Products Stored":  ", ".join(zone_prods) if zone_prods else "(empty)",
+        })
+    df2 = pd.DataFrame(zone_rows)
+
+    # ──────────────────────── Sheet 3: Summary ─────────────────────────
+    df3 = pd.DataFrame([
+        {"Metric": "Best Fitness Score",  "Value": best_fitness},
+        {"Metric": "Total Products",      "Value": num_products},
+        {"Metric": "Total Zones",         "Value": num_zones},
+        {"Metric": "Total Weight (kg)",   "Value": sum(p["weight"] for p in products)},
+    ])
+
+    # ─────────────── Write all sheets to one Excel file ────────────────
+    with pd.ExcelWriter(filename, engine="openpyxl") as writer:
+        df1.to_excel(writer, sheet_name="Product Allocation", index=False)
+        df2.to_excel(writer, sheet_name="Zone Summary",       index=False)
+        df3.to_excel(writer, sheet_name="Summary",            index=False)
+
+    # ──────────────── Applying formatting ──────────────────────────────
+    wb = load_workbook(filename)
+
+    header_font  = Font(name="Arial", bold=True, color="FFFFFF", size=11)
+    header_fill  = PatternFill("solid", start_color="2E75B6")
+    normal_font  = Font(name="Arial", size=10)
+    center       = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    thin         = Side(style="thin", color="CCCCCC")
+    all_borders  = Border(left=thin, right=thin, top=thin, bottom=thin)
+    green_fill   = PatternFill("solid", start_color="C6EFCE")  # Yes
+    red_fill     = PatternFill("solid", start_color="FFC7CE")  # over capacity
+    alt_fill_1   = PatternFill("solid", start_color="F2F7FD")  # alternating row
+    alt_fill_2   = PatternFill("solid", start_color="FFFFFF")
+
+    def format_sheet(ws, col_widths):
+        # format header row
+        for col, width in enumerate(col_widths, start=1):
+            cell = ws.cell(row=1, column=col)
+            cell.font      = header_font
+            cell.fill      = header_fill
+            cell.alignment = center
+            cell.border    = all_borders
+            ws.column_dimensions[ws.cell(row=1, column=col).column_letter].width = width
+        ws.row_dimensions[1].height = 20
+
+        # format data rows
+        for row in ws.iter_rows(min_row=2, max_row=ws.max_row, max_col=ws.max_column):
+            row_fill = alt_fill_1 if row[0].row % 2 == 0 else alt_fill_2
+            for cell in row:
+                cell.font      = normal_font
+                cell.alignment = center
+                cell.border    = all_borders
+                cell.fill      = row_fill
+
+    # ─────────────────── Sheet 1: Product Allocation ───────────────────
+    ws1 = wb["Product Allocation"]
+    format_sheet(ws1, [22, 13, 13, 10, 28, 10, 12, 17, 13])
+
+    # green highlight for Yes values in columns 6-9
+    for row in ws1.iter_rows(min_row=2, max_row=ws1.max_row, min_col=6, max_col=9):
+        for cell in row:
+            if cell.value == "Yes":
+                cell.fill = green_fill
+
+    # ────────────────────── Sheet 2: Zone Summary ──────────────────────
+    ws2 = wb["Zone Summary"]
+    format_sheet(ws2, [8, 28, 14, 12, 15, 48])
+
+    # red row if zone is over capacity
+    for row in ws2.iter_rows(min_row=2, max_row=ws2.max_row):
+        used      = row[3].value   # "Used (kg)" column
+        capacity  = row[2].value   # "Capacity (kg)" column
+        if used is not None and capacity is not None and used > capacity:
+            for cell in row:
+                cell.fill = red_fill
+            row[4].font = Font(name="Arial", size=10, bold=True, color="FF0000")  # Remaining in red
+
+    # ──────────────────────── Sheet 3: Summary ─────────────────────────
+    ws3 = wb["Summary"]
+    format_sheet(ws3, [25, 15])
+
+    wb.save(filename)
+    print(f"Excel report saved: {filename}")
 
 if __name__ == "__main__":
     # Initialization
     pop_size = 200
-    max_gen = 1000
+    max_gen = 400
     tournament_size = 3
     base_mutation_rate = 0.05   # 5% chance for each gene to mutate
     mutation_rate = base_mutation_rate
@@ -283,5 +399,8 @@ if __name__ == "__main__":
             print(f'Z{z}: {", ".join(zone_products)}')
         else:
             print(f'Z{z}: (empty)')
+
+    # Export results to Excel
+    export_to_excel(best_chromo, best_fitness)
 
     pass
