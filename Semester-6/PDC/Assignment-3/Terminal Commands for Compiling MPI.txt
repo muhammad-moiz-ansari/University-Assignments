@@ -1,0 +1,28 @@
+# Compile
+mpicxx -o 23i-0523_F_A3 23i-0523_F_A3.cpp   -I/home/moiz129/local/include   -L/home/moiz129/local/lib   -lparmetis -lmetis   -Wl,-rpath,/home/moiz129/local/lib
+
+# 2 processes
+mpirun -np 2 --hostfile ~/hostfile \
+  -x LD_LIBRARY_PATH=/home/moiz129/local/lib \
+  --mca btl_tcp_if_include ens37 \
+  ./23i-0523_F_A3
+
+# 4 processes
+mpirun -np 4 --hostfile ~/hostfile \
+  -x LD_LIBRARY_PATH=/home/moiz129/local/lib \
+  --mca btl_tcp_if_include ens37 \
+  ./23i-0523_F_A3
+
+# 8 processes
+mpirun -np 8 --hostfile ~/hostfile \
+  -x LD_LIBRARY_PATH=/home/moiz129/local/lib \
+  --mca btl_tcp_if_include ens37 \
+  --oversubscribe \
+  ./23i-0523_F_A3
+
+# 16 processes
+mpirun -np 16 --hostfile ~/hostfile \
+  -x LD_LIBRARY_PATH=/home/moiz129/local/lib \
+  --mca btl_tcp_if_include ens37 \
+  --oversubscribe \
+  ./23i-0523_F_A3
