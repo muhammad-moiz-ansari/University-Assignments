@@ -62,6 +62,7 @@ class Cell:
         self.is_fortress= False
         # Note: temp_fortress_rounds left as-is; game engine handles expiry
  
+	# Printing string for debugging
     def __repr__(self):
         if self.owner:
             return f"Cell({self.owner.value},def={self.defense},{'F' if self.is_fortress else 'O'})"
@@ -90,13 +91,13 @@ class Unit:
     def can_act(self) -> bool:
         return self.disabled_turns == 0
  
-	# Call once per turn to reduce disabled countdown
+	# Called once per turn to reduce disabled countdown
     def tick_disabled(self):
         if self.disabled_turns > 0:
             self.disabled_turns -= 1
  
-	# Call once per turn for bonus units.
-	# Returns True if the unit should be removed (lifetime expired).
+	# Called once per turn for bonus units
+	# Returns True if the unit should be removed (lifetime expired/DEAD)
     def tick_bonus(self) -> bool:
         if self.is_bonus:
             self.bonus_turns -= 1
@@ -106,3 +107,54 @@ class Unit:
     def __repr__(self):
         status = "disabled" if self.disabled_turns > 0 else "active"
         return f"Unit({self.owner.value}{self.unit_id}@({self.row},{self.col})[{status}])"
+    
+"""
+─────────────────────────────────────────────
+ 4. AGENT STATE - per-agent tracking
+─────────────────────────────────────────────
+"""
+ 
+@dataclass
+class AgentState:
+    # Everything tracked for one agent across the whole game.
+    agent_id     : AgentID		  							# the agent this state belongs to
+    energy       : int        = 20						    # shared energy pool for all this agent's units
+    score        : int        = 0						    # total score earned so far
+    units        : list       = field(default_factory=list) # list of Unit objects currently on the board
+    is_eliminated: bool       = False						# True once all units gone or energy at 0 and no units
+ 
+    # Deduct energy. Returns True if successful, False if not enough energy.
+    def spend_energy(self, amount: int = 1) -> bool:
+        if self.energy >= amount:
+            self.energy -= amount
+            return True
+        return False
+ 
+	# Agent can act only if it has energy > 0 and at least one active unit
+    def can_act(self) -> bool:
+        if self.is_eliminated:
+            return False
+        return self.energy > 0 and any(u.can_act() for u in self.units)
+ 
+	# Units that are not disabled
+    def active_units(self) -> list:
+        return [u for u in self.units if u.can_act()]
+ 
+    def add_score(self, points: int):
+        self.score += points
+ 
+	# Cells owned by this agent
+    def owned_cells_count(self, board: 'Board') -> int:
+        count = 0
+        for row in board.grid:
+            for cell in row:
+                if cell.owner == self.agent_id:
+                    count += 1
+        return count
+ 
+    def __repr__(self):
+        return (f"AgentState({self.agent_id.value} | "
+                f"energy={self.energy} | score={self.score} | "
+                f"units={len(self.units)} | eliminated={self.is_eliminated})")
+ 
+ 
