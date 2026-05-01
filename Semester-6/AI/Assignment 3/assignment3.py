@@ -586,7 +586,7 @@ def _cross_product(per_unit: list[list[Action]]) -> list[list[Action]]:
 @dataclass
 class ActionResult:
     """Holds the outcome of executing a set of actions."""
-    log: list[str] = []
+    log: list[str] = field(default_factory=list)  
     die_outcome: Optional[str] = None     # last combat outcome tag
     minefield_outcome: Optional[str] = None
  
@@ -831,7 +831,7 @@ def _resolve_minefield(state: GameState, agent: AgentState, unit: Unit,
     elif outcome == "energy_drain":
         lost = min(3, agent.energy)
         agent.energy -= lost
-        result.add(f"  Minefield at ({tr},{tc}): Energy drain — {agent.agent_id.value} loses {lost} energy → {agent.energy}.")
+        result.add(f"  Minefield at ({tr},{tc}): Energy drain - {agent.agent_id.value} loses {lost} energy → {agent.energy}.")
  
     elif outcome == "unit_disabled":
         unit.disabled_turns = 2
@@ -842,7 +842,7 @@ def _resolve_minefield(state: GameState, agent: AgentState, unit: Unit,
         agent.energy -= lost
         cell.cell_type = CellType.OBSTACLE
         cell.owner     = None
-        result.add(f"  Minefield at ({tr},{tc}): DETONATION — becomes Obstacle; {agent.agent_id.value} loses {lost} energy → {agent.energy}.")
+        result.add(f"  Minefield at ({tr},{tc}): DETONATION - becomes Obstacle; {agent.agent_id.value} loses {lost} energy → {agent.energy}.")
  
  
 """
@@ -909,6 +909,96 @@ def award_elimination_bonus(state: GameState, attacker_id: AgentID, result: Acti
             agent._bonus_awarded = True
             result.add(f"  Elimination bonus: +5 to {attacker_id.value}!")
  
+
+
+"""
+3. Chance Nodes - Environmental Events
+============================================
+Handles the 4 environmental events drawn at the start of each round
+(before Agent A moves), each with probability 0.25:
+"""
+
+# ─────────────────────────────────────────────
+# 1. ENVIRONMENTAL EVENT TABLE (configurable)
+# ─────────────────────────────────────────────
+ 
+ENV_EVENTS = [
+    # event tag            probability
+    ("supply_drop",        0.25),
+    ("earthquake",         0.25),
+    ("reinforcement",      0.25),
+    ("fog_of_war",         0.25),
+]
+ 
+ENV_EVENT_PROBS: dict[str, float] = {tag: p for tag, p in ENV_EVENTS}
+ 
+# Verify sum
+assert abs(sum(ENV_EVENT_PROBS.values()) - 1.0) < 1e-9, "Env event probs must sum to 1.0"
+ 
+ 
+# ─────────────────────────────────────────────
+# 2. EVENT RESULT - log of what happened
+# ─────────────────────────────────────────────
+ 
+@dataclass
+class EventResult:
+    event_tag : str
+    log       : list[str]
+ 
+    def __repr__(self):
+        return f"[{self.event_tag}] " + " | ".join(self.log)
+ 
+ 
+# ─────────────────────────────────────────────
+# 3. ENVIRONMENTAL EVENT DISPATCHER
+# ─────────────────────────────────────────────
+ 
+def draw_environmental_event(forced: Optional[str] = None) -> str:
+    """
+    Draw one environmental event at random (uniform 0.25 each).
+    Pass forced= to override (used by search to enumerate branches).
+    """
+    if forced:
+        return forced
+    r = random.random()
+    cumulative = 0.0
+    for tag, prob in ENV_EVENTS:
+        cumulative += prob
+        if r < cumulative:
+            return tag
+    return ENV_EVENTS[-1][0]
+ 
+ 
+def apply_environmental_event(state: GameState,
+                               event_tag: str) -> EventResult:
+    """
+    Apply the given environmental event to the state IN PLACE.
+    Returns an EventResult describing what happened.
+    """
+    result = EventResult(event_tag=event_tag, log=[])
+ 
+    if event_tag == "supply_drop":
+        _apply_supply_drop(state, result)
+ 
+    elif event_tag == "earthquake":
+        _apply_earthquake(state, result)
+ 
+    elif event_tag == "reinforcement":
+        _apply_reinforcement(state, result)
+ 
+    elif event_tag == "fog_of_war":
+        _apply_fog_of_war(state, result)
+ 
+    return result
+ 
+
+
+
+
+
+
+
+
 
 
 
