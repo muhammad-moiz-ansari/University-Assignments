@@ -831,7 +831,7 @@ def _resolve_minefield(state: GameState, agent: AgentState, unit: Unit,
     elif outcome == "energy_drain":
         lost = min(3, agent.energy)
         agent.energy -= lost
-        result.add(f"  Minefield at ({tr},{tc}): Energy drain - {agent.agent_id.value} loses {lost} energy → {agent.energy}.")
+        result.add(f"  Minefield at ({tr},{tc}): Energy drain - {agent.agent_id.value} loses {lost} energy -> {agent.energy}.")
  
     elif outcome == "unit_disabled":
         unit.disabled_turns = 2
@@ -842,7 +842,7 @@ def _resolve_minefield(state: GameState, agent: AgentState, unit: Unit,
         agent.energy -= lost
         cell.cell_type = CellType.OBSTACLE
         cell.owner     = None
-        result.add(f"  Minefield at ({tr},{tc}): DETONATION - becomes Obstacle; {agent.agent_id.value} loses {lost} energy → {agent.energy}.")
+        result.add(f"  Minefield at ({tr},{tc}): DETONATION - becomes Obstacle; {agent.agent_id.value} loses {lost} energy -> {agent.energy}.")
  
  
 """
@@ -989,26 +989,253 @@ def apply_environmental_event(state: GameState,
     elif event_tag == "fog_of_war":
         _apply_fog_of_war(state, result)
  
-    return result
+    return result 
+
+
+# ─────────────────────────────────────────────
+# 4. INDIVIDUAL EVENT IMPLEMENTATIONS
+# ─────────────────────────────────────────────
  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+def _apply_supply_drop(state: GameState, result: EventResult):
+    """
+    Supply Drop: a random empty cell becomes a Fortress for 3 rounds.
+    After 3 rounds it reverts to Empty.
+    """
+    board = state.board
+    candidates = [
+        (r, c)
+        for r in range(board.rows)
+        for c in range(board.cols)
+        if board.get_cell(r, c).cell_type == CellType.EMPTY
+        and board.get_cell(r, c).owner is None
+    ]
+ 
+    if not candidates:
+        result.log.append("Supply Drop: no empty cells available — skipped.")
+        return
+ 
+    r, c = random.choice(candidates)
+    cell = board.get_cell(r, c)
+    cell.cell_type           = CellType.FORTRESS
+    cell.is_fortress         = True
+    cell.defense             = 2
+    cell.temp_fortress_rounds = 3
+ 
+    result.log.append(f"Supply Drop: ({r},{c}) becomes a temp Fortress for 3 rounds.")
+ 
+ 
+def _apply_earthquake(state: GameState, result: EventResult):
+    """
+    Earthquake: one randomly selected owned cell loses 1 defense.
+    If defense reaches 0 the cell reverts to Empty (no capture — just abandoned).
+    """
+    board = state.board
+    owned_cells = [
+        (r, c)
+        for r in range(board.rows)
+        for c in range(board.cols)
+        if board.get_cell(r, c).owner is not None
+    ]
+ 
+    if not owned_cells:
+        result.log.append("Earthquake: no owned cells — skipped.")
+        return
+ 
+    r, c = random.choice(owned_cells)
+    cell = board.get_cell(r, c)
+    old_owner = cell.owner
+    cell.defense -= 1
+ 
+    if cell.defense <= 0:
+        cell.reset_to_empty()
+        result.log.append(
+            f"Earthquake: ({r},{c}) owned by {old_owner.value} lost its last defense — reverts to Empty."
+        )
+    else:
+        result.log.append(
+            f"Earthquake: ({r},{c}) owned by {old_owner.value} — defense reduced to {cell.defense}."
+        )
+ 
+ 
+def _apply_reinforcement(state: GameState, result: EventResult):
+    """
+    Reinforcement: the agent with the lowest current score gets a bonus unit
+    placed on an empty adjacent cell for 2 turns.
+ 
+    Placement priority:
+        1. Adjacent empty cell to any existing unit
+        2. Nearest owned cell (if no empty adjacent)
+    """
+    board  = state.board
+    active = [aid for aid in AgentID if not state.get_agent(aid).is_eliminated]
+ 
+    if not active:
+        result.log.append("Reinforcement: no active agents — skipped.")
+        return
+ 
+    # Find agent with lowest score
+    weakest_id = min(active, key=lambda aid: state.get_agent(aid).score)
+    agent      = state.get_agent(weakest_id)
+ 
+    # Find placement cell
+    placement  = _find_reinforcement_placement(state, agent)
+ 
+    if placement is None:
+        result.log.append(
+            f"Reinforcement: {weakest_id.value} is weakest but no valid placement found — skipped."
+        )
+        return
+ 
+    pr, pc = placement
+    new_unit_id = max((u.unit_id for u in agent.units), default=-1) + 1
+    bonus_unit  = Unit(
+        unit_id     = new_unit_id,
+        owner       = weakest_id,
+        row         = pr,
+        col         = pc,
+        is_bonus    = True,
+        bonus_turns = 2,
+    )
+    agent.units.append(bonus_unit)
+ 
+    result.log.append(
+        f"Reinforcement: {weakest_id.value} (score={agent.score}) gets bonus unit {new_unit_id} "
+        f"at ({pr},{pc}) for 2 turns."
+    )
+ 
+ 
+def _find_reinforcement_placement(state: GameState,
+                                   agent: AgentState) -> Optional[tuple[int, int]]:
+    """Find best placement for the bonus unit."""
+    board = state.board
+ 
+    # 1. Look for empty adjacent cell near any existing unit
+    for unit in agent.units:
+        for nr, nc in board.adjacent_cells(unit.row, unit.col):
+            cell = board.get_cell(nr, nc)
+            if cell.cell_type == CellType.EMPTY and cell.owner is None:
+                return (nr, nc)
+ 
+    # 2. Fall back to nearest owned cell
+    for r in range(board.rows):
+        for c in range(board.cols):
+            cell = board.get_cell(r, c)
+            if cell.owner == agent.agent_id:
+                return (r, c)
+ 
+    return None
+ 
+ 
+def _apply_fog_of_war(state: GameState, result: EventResult):
+    """
+    Fog of War: each agent's observable range is halved (rounded down) for THIS TURN only.
+    """
+    state.fog_active = True
+    result.log.append(
+        "Fog of War: all agents' observable range halved for this turn."
+    )
+ 
+ 
+# ─────────────────────────────────────────────
+# 5. ROUND HOUSEKEEPING
+# ─────────────────────────────────────────────
+ 
+def tick_temp_fortresses(state: GameState) -> list[str]:
+    """
+    Decrement countdown on all temporary Supply Drop fortresses.
+    Reverts any that have expired back to Empty.
+    Called once per round (after all agents move).
+    Returns a log of what expired.
+    """
+    log = []
+    board = state.board
+    for r in range(board.rows):
+        for c in range(board.cols):
+            cell = board.get_cell(r, c)
+            if cell.temp_fortress_rounds > 0:
+                cell.temp_fortress_rounds -= 1
+                if cell.temp_fortress_rounds == 0:
+                    old_owner = cell.owner
+                    cell.reset_to_empty()
+                    log.append(
+                        f"Supply Drop expired: ({r},{c}) reverts to Empty "
+                        f"(was owned by {old_owner.value if old_owner else 'nobody'})."
+                    )
+    return log
+ 
+ 
+def tick_bonus_units(state: GameState) -> list[str]:
+    """
+    Decrement countdown on all bonus units across all agents.
+    Removes expired bonus units.
+    Called once per round.
+    Returns a log of removals.
+    """
+    log = []
+    for aid in AgentID:
+        agent = state.get_agent(aid)
+        to_remove = []
+        for unit in agent.units:
+            if unit.is_bonus:
+                unit.bonus_turns -= 1
+                if unit.bonus_turns <= 0:
+                    to_remove.append(unit)
+        for u in to_remove:
+            agent.units.remove(u)
+            log.append(f"Bonus unit {u.unit_id} of {aid.value} expired and removed.")
+    return log
+ 
+ 
+def clear_fog(state: GameState):
+    """Reset fog flag at the end of the turn it was applied."""
+    state.fog_active = False
+ 
+ 
+def get_effective_radius(agent_id: AgentID, state: GameState) -> int:
+    """
+    Return the effective observable radius for an agent,
+    accounting for Fog of War halving.
+ 
+    Radius conventions:
+        -1  -> full board (Expert, no fog)
+        ≥0  -> Manhattan distance radius
+    """
+    BASE_RADIUS = {
+        AgentID.A: -1,   # full board
+        AgentID.B:  5,
+        AgentID.C:  3,
+    }
+    radius = BASE_RADIUS[agent_id]
+ 
+    if state.fog_active:
+        if radius < 0:
+            # Full board halved -> treat as large finite radius
+            radius = max(0, (max(state.board.rows, state.board.cols)) // 2)
+        else:
+            radius = radius // 2  # rounded down per rules
+ 
+    return radius
+ 
+ 
+def score_all_agents(state: GameState) -> list[str]:
+    """
+    Award per-round points to every active agent for cells they own.
+    Call once per round.
+    Returns a log of points awarded.
+    """
+    log = []
+    for aid in AgentID:
+        agent = state.get_agent(aid)
+        if agent.is_eliminated:
+            continue
+        earned = 0
+        for row in state.board.grid:
+            for cell in row:
+                if cell.owner == aid:
+                    earned += cell.score_value()
+        agent.add_score(earned)
+        log.append(f"  {aid.value} earns {earned} pts this round -> total {agent.score}.")
+    return log
  
  
 # ─────────────────────────────────────────────
@@ -1016,8 +1243,7 @@ def apply_environmental_event(state: GameState,
 # ─────────────────────────────────────────────
  
 if __name__ == "__main__":
-    import random
-    random.seed(42)
+    random.seed(7)
  
     grid_chars = [
         list("........"),
@@ -1040,56 +1266,57 @@ if __name__ == "__main__":
     print(state.board)
     print()
  
-    # Test 1: Legal actions for Agent A
-    actions_A = get_legal_actions(state, AgentID.A)
-    print(f"Agent A has {len(actions_A)} action combinations.")
-    print("Sample actions:", actions_A[:3])
+    # Test each event explicitly
+    for event_tag in ["supply_drop", "earthquake", "reinforcement", "fog_of_war"]:
+        s = state.deep_copy()
+        res = apply_environmental_event(s, event_tag)
+        print(f"[{event_tag}]")
+        print(" ", res)
+        if event_tag == "supply_drop":
+            # Find the temp fortress
+            for r in range(s.board.rows):
+                for c in range(s.board.cols):
+                    cell = s.board.get_cell(r, c)
+                    if cell.temp_fortress_rounds > 0:
+                        print(f"  Temp fortress at ({r},{c}), countdown={cell.temp_fortress_rounds}")
+        if event_tag == "reinforcement":
+            for aid in AgentID:
+                agent = s.get_agent(aid)
+                bonus = [u for u in agent.units if u.is_bonus]
+                if bonus:
+                    print(f"  Bonus unit: {bonus[0]}")
+        if event_tag == "fog_of_war":
+            print(f"  Fog active: {s.fog_active}")
+            for aid in AgentID:
+                r = get_effective_radius(aid, s)
+                print(f"  {aid.value} effective radius: {r}")
+        print()
+ 
+    # Test Supply Drop expiry
+    print("=== Supply Drop expiry test ===")
+    s2 = state.deep_copy()
+    res = apply_environmental_event(s2, "supply_drop")
+    print(res)
+    for i in range(4):
+        expired = tick_temp_fortresses(s2)
+        print(f"  Round tick {i+1}: {expired if expired else 'nothing expired'}")
     print()
  
-    # Test 2: Move Agent A's unit0 right (0,1)
-    move_action = [
-        Action(ActionType.MOVE, 0, AgentID.A, 0, 1),
-        Action(ActionType.WAIT, 1, AgentID.A),
-    ]
-    result = execute_actions(state, AgentID.A, move_action)
-    print("=== After A moves unit0 to (0,1) ===")
-    print(result)
-    print(state.board)
+    # Test round scoring
+    print("=== Round scoring ===")
+    s3 = state.deep_copy()
+    log = score_all_agents(s3)
+    for line in log:
+        print(line)
     print()
  
-    # Test 3: Fortify the cell A just captured
-    fortify_action = [
-        Action(ActionType.FORTIFY, 0, AgentID.A, 0, 1),
-        Action(ActionType.WAIT,    1, AgentID.A),
-    ]
-    result2 = execute_actions(state, AgentID.A, fortify_action)
-    print("=== After A fortifies (0,1) ===")
-    print(result2)
-    print(f"Cell (0,1) defense: {state.board.get_cell(0,1).defense}")
-    print()
- 
-    # Test 4: Combat resolution (forced outcome)
-    print("=== Forced combat outcomes ===")
-    for outcome_tag in ["fail_energy", "fail", "partial", "partial_advance", "full", "critical"]:
-        s2 = state.deep_copy()
-        # Place a B-owned cell at (0,2) for testing
-        s2.board.get_cell(0, 2).owner = AgentID.B
-        s2.board.get_cell(0, 2).defense = 1
-        atk = [
-            Action(ActionType.ATTACK, 0, AgentID.A, 0, 2),
-            Action(ActionType.WAIT,   1, AgentID.A),
-        ]
-        res = execute_actions(s2, AgentID.A, atk, die_outcome=outcome_tag)
-        cell_state = s2.board.get_cell(0, 2)
-        print(f"  [{outcome_tag:16s}] → owner={cell_state.owner}, defense={cell_state.defense}")
- 
-    print()
-    print("=== Die probability table ===")
-    for tag, prob in sorted(OUTCOME_PROBS.items()):
-        print(f"  {tag:20s}: {prob:.2f}")
-    print(f"  Total: {sum(OUTCOME_PROBS.values()):.2f}")
- 
-    print()
-    print("=== Minefield probability table ===")
-    for tag, prob in MINEFIELD_PROBS.items():
-        print(f"  {tag:20s}: {prob:.2f}") 
+    # Test Fog of War radius
+    print("=== Fog of War radius ===")
+    s4 = state.deep_copy()
+    for aid in AgentID:
+        print(f"  {aid.value} normal radius : {get_effective_radius(aid, s4)}")
+    apply_environmental_event(s4, "fog_of_war")
+    for aid in AgentID:
+        print(f"  {aid.value} fog radius    : {get_effective_radius(aid, s4)}")
+    clear_fog(s4)
+    print(f"  Fog cleared: {s4.fog_active}")
