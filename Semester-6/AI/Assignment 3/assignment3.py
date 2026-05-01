@@ -3,6 +3,8 @@ from dataclasses import dataclass, field
 from typing import Optional
 import copy
 import random
+import math
+import time
 
 """
 1. Game State
@@ -1237,7 +1239,212 @@ def score_all_agents(state: GameState) -> list[str]:
         log.append(f"  {aid.value} earns {earned} pts this round -> total {agent.score}.")
     return log
  
+
+
+"""
+Step 4: Expectiminimax with Alpha-Beta Pruning
+===============================================
+Core AI search for all three agents.
+"""
+
+# ─────────────────────────────────────────────
+# 1. AGENT CONFIGURATION (structural asymmetry)
+#    Everything flows through these config objects.
+# ─────────────────────────────────────────────
  
+@dataclass
+class AgentConfig:
+    """
+    Structural definition of an agent's cognitive capability.
+    The search engine reads ONLY these fields — never agent ID directly.
+    """
+    agent_id         : AgentID
+    max_depth        : int
+    obs_radius       : int          # -1 = full board
+    chance_branches  : list[str]    # the outcome tags to evaluate at chance nodes
+    eval_factors     : int          # 1=greedy, 3=intermediate, 5=full
+    use_transposition: bool
+ 
+ 
+# Top-2 most probable chance branches for Novice (by probability)
+_sorted_outcomes = sorted(OUTCOME_PROBS.items(), key=lambda x: -x[1])
+NOVICE_BRANCHES  = [tag for tag, _ in _sorted_outcomes[:2]]   # ["full", "fail_energy"]
+ALL_BRANCHES     = list(OUTCOME_PROBS.keys())                  # all 6 collapsed tags
+ 
+AGENT_CONFIGS: dict[AgentID, AgentConfig] = {
+    AgentID.A: AgentConfig(
+        agent_id          = AgentID.A,
+        max_depth         = 7,
+        obs_radius        = -1,
+        chance_branches   = ALL_BRANCHES,
+        eval_factors      = 5,
+        use_transposition = True,
+    ),
+    AgentID.B: AgentConfig(
+        agent_id          = AgentID.B,
+        max_depth         = 5,
+        obs_radius        = 5,
+        chance_branches   = ALL_BRANCHES,
+        eval_factors      = 3,
+        use_transposition = False,
+    ),
+    AgentID.C: AgentConfig(
+        agent_id          = AgentID.C,
+        max_depth         = 3,
+        obs_radius        = 3,
+        chance_branches   = NOVICE_BRANCHES,
+        eval_factors      = 1,
+        use_transposition = False,
+    ),
+}
+ 
+ 
+# ─────────────────────────────────────────────
+# 2. NODE STATISTICS (per move reporting)
+# ─────────────────────────────────────────────
+ 
+@dataclass
+class SearchStats:
+    """Tracks node counts for per-move reporting (Section 6.2)."""
+    nodes_explored : int = 0
+    nodes_pruned   : int = 0
+    start_time     : float = field(default_factory=time.time)
+ 
+    def pruning_pct(self) -> float:
+        total = self.nodes_explored + self.nodes_pruned
+        return (self.nodes_pruned / total * 100) if total > 0 else 0.0
+ 
+    def elapsed_ms(self) -> float:
+        return (time.time() - self.start_time) * 1000
+ 
+ 
+# ─────────────────────────────────────────────
+# 3. EVALUATION FUNCTIONS
+#    Each agent uses a different subset of factors.
+#    eval_factors controls which factors are active.
+# ─────────────────────────────────────────────
+ 
+def evaluate(state: GameState, agent_id: AgentID, eval_factors: int) -> float:
+    """
+    Estimate board utility for agent_id.
+ 
+    eval_factors:
+        1 -> greedy: score differential only          (Novice)
+        3 -> score diff + territory + positional      (Intermediate)
+        5 -> all 5 factors                            (Expert)
+ 
+    All factors return values in a normalised range so weights are comparable.
+    """
+    agent    = state.get_agent(agent_id)
+    board    = state.board
+    opponents = [aid for aid in AgentID if aid != agent_id
+                 and not state.get_agent(aid).is_eliminated]
+ 
+    # ── Factor 1: Score differential (all agents) ──────────────────────────
+    # Directly measures winning margin. Primary signal for all agents.
+    my_score  = agent.score
+    opp_scores = [state.get_agent(o).score for o in opponents]
+    avg_opp_score = (sum(opp_scores) / len(opp_scores)) if opp_scores else 0
+    f1_score_diff = my_score - avg_opp_score
+ 
+    if eval_factors == 1:
+        return float(f1_score_diff)
+ 
+    # ── Factor 2: Territory control ────────────────────────────────────────
+    # Owning more cells = more points per round = compounding advantage.
+    # Fortress cells weighted 3x (they yield +3/round vs +1).
+    my_cells = 0
+    my_fortress = 0
+    for r in range(board.rows):
+        for c in range(board.cols):
+            cell = board.get_cell(r, c)
+            if cell.owner == agent_id:
+                my_cells += 1
+                if cell.is_fortress:
+                    my_fortress += 1
+ 
+    opp_cells = sum(board.count_owned(o) for o in opponents)
+    f2_territory = (my_cells + 3 * my_fortress) - opp_cells
+ 
+    # ── Factor 3: Positional advantage ────────────────────────────────────
+    # Units close to Fortresses can capture them quickly.
+    # We reward low average Manhattan distance from units to nearest fortress.
+    fortress_cells = [
+        (r, c) for r in range(board.rows) for c in range(board.cols)
+        if board.get_cell(r, c).is_fortress and board.get_cell(r, c).owner != agent_id
+    ]
+ 
+    f3_position = 0.0
+    if fortress_cells and agent.units:
+        total_dist = 0
+        for unit in agent.units:
+            min_dist = min(
+                abs(unit.row - fr) + abs(unit.col - fc)
+                for fr, fc in fortress_cells
+            )
+            total_dist += min_dist
+        avg_dist = total_dist / len(agent.units)
+        # Closer = better -> negate distance, normalise by board size
+        max_dist = board.rows + board.cols
+        f3_position = (max_dist - avg_dist) / max_dist * 10
+ 
+    if eval_factors == 3:
+        return float(f1_score_diff * 1.0 +
+                     f2_territory  * 2.0 +
+                     f3_position   * 1.5)
+ 
+    # ── Factor 4: Threat assessment ────────────────────────────────────────
+    # Opponent units adjacent to owned cells threaten captures next turn.
+    # Penalty for each such threat — defensive awareness.
+    threat_count = 0
+    for r in range(board.rows):
+        for c in range(board.cols):
+            cell = board.get_cell(r, c)
+            if cell.owner == agent_id:
+                for nr, nc in board.adjacent_cells(r, c):
+                    # Check if any opponent unit is sitting there
+                    for opp in opponents:
+                        for u in state.get_agent(opp).units:
+                            if u.row == nr and u.col == nc:
+                                threat_count += 1
+ 
+    f4_threat = -threat_count  # negative: more threats = worse
+ 
+    # ── Factor 5: Energy advantage ─────────────────────────────────────────
+    # Energy = future action budget. Running low = forced to Wait.
+    opp_energies = [state.get_agent(o).energy for o in opponents]
+    avg_opp_energy = (sum(opp_energies) / len(opp_energies)) if opp_energies else 0
+    f5_energy = agent.energy - avg_opp_energy
+ 
+    # Full weighted combination
+    return float(
+        f1_score_diff * 1.0 +
+        f2_territory  * 2.0 +
+        f3_position   * 1.5 +
+        f4_threat     * 1.0 +
+        f5_energy     * 0.5
+    )
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # ─────────────────────────────────────────────
 # TEST Func
 # ─────────────────────────────────────────────
