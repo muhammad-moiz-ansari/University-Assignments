@@ -634,9 +634,11 @@ def execute_actions(state: GameState, 		# GameState to mutate
     return result
  
  
-# ─────────────────────────────────────────────
-# 6. INDIVIDUAL ACTION IMPLEMENTATIONS
-# ─────────────────────────────────────────────
+"""
+─────────────────────────────────────────────
+ 6. INDIVIDUAL ACTION IMPLEMENTATIONS
+─────────────────────────────────────────────
+"""
  
 def _find_unit(agent: AgentState, unit_id: int) -> Optional[Unit]:
     for u in agent.units:
@@ -738,10 +740,12 @@ def _do_fortify(state: GameState, agent: AgentState, unit: Unit,
     cell.defense += 1
     result.add(f"{agent.agent_id.value}[unit{unit.unit_id}] Fortifies ({tr},{tc}) - defense now {cell.defense}.")
  
- 
-# ─────────────────────────────────────────────
-# 7. COMBAT RESOLUTION
-# ─────────────────────────────────────────────
+
+"""
+─────────────────────────────────────────────
+ 7. COMBAT RESOLUTION
+─────────────────────────────────────────────
+"""
  
 def _resolve_combat(state: GameState, agent: AgentState, unit: Unit,
                     tr: int, tc: int, outcome: str,
@@ -808,7 +812,197 @@ def _check_elimination(state: GameState, agent_id: AgentID, result: ActionResult
         # Award +5 to whoever eliminated them (last attacker implicit via context)
         result.add(f"  {agent_id.value} has been ELIMINATED!")
  
+
+"""
+─────────────────────────────────────────────
+ 8. MINEFIELD RESOLUTION
+─────────────────────────────────────────────
+"""
  
+def _resolve_minefield(state: GameState, agent: AgentState, unit: Unit,
+                        tr: int, tc: int, outcome: str, result: ActionResult):
+    """Apply minefield event outcome."""
+    board = state.board
+    cell  = board.get_cell(tr, tc)
+ 
+    if outcome == "safe":
+        result.add(f"  Minefield at ({tr},{tc}): Safe passage.")
+ 
+    elif outcome == "energy_drain":
+        lost = min(3, agent.energy)
+        agent.energy -= lost
+        result.add(f"  Minefield at ({tr},{tc}): Energy drain — {agent.agent_id.value} loses {lost} energy → {agent.energy}.")
+ 
+    elif outcome == "unit_disabled":
+        unit.disabled_turns = 2
+        result.add(f"  Minefield at ({tr},{tc}): {agent.agent_id.value}[unit{unit.unit_id}] disabled for 2 turns.")
+ 
+    elif outcome == "detonation":
+        lost = min(5, agent.energy)
+        agent.energy -= lost
+        cell.cell_type = CellType.OBSTACLE
+        cell.owner     = None
+        result.add(f"  Minefield at ({tr},{tc}): DETONATION — becomes Obstacle; {agent.agent_id.value} loses {lost} energy → {agent.energy}.")
+ 
+ 
+"""
+─────────────────────────────────────────────
+ 9. DIE ROLLERS
+─────────────────────────────────────────────
+"""
+ 
+def _roll_die() -> str:
+    """Roll the 9-sided die; return the outcome tag."""
+    r = random.random()
+    cumulative = 0.0
+    for _, prob, tag in DIE_OUTCOMES:
+        cumulative += prob
+        if r < cumulative:
+            return tag
+    return DIE_OUTCOMES[-1][2]  # fallback
+ 
+ 
+def _roll_minefield() -> str:
+    """Roll the minefield 4-sided event."""
+    r = random.random()
+    cumulative = 0.0
+    for tag, prob in MINEFIELD_OUTCOMES:
+        cumulative += prob
+        if r < cumulative:
+            return tag
+    return MINEFIELD_OUTCOMES[-1][0]
+ 
+ 
+"""
+─────────────────────────────────────────────
+ 10. TURN TICK - housekeeping after each agent's turn
+─────────────────────────────────────────────
+"""
+ 
+def tick_units(state: GameState, agent_id: AgentID):
+    """
+    Call after an agent completes their turn.
+    - Decrements disabled_turns on each unit
+    - Removes bonus units whose lifetime expired
+    """
+    agent = state.get_agent(agent_id)
+    to_remove = []
+    for unit in agent.units:
+        unit.tick_disabled()
+        if unit.is_bonus and unit.tick_bonus():
+            to_remove.append(unit)
+    for u in to_remove:
+        agent.units.remove(u)
+ 
+ 
+def award_elimination_bonus(state: GameState, attacker_id: AgentID, result: ActionResult):
+    """
+    If any opponent was just eliminated, award +5 to the attacker.
+    Call after execute_actions to detect newly eliminated agents.
+    """
+    for aid in AgentID:
+        if aid == attacker_id:
+            continue
+        agent = state.get_agent(aid)
+        if agent.is_eliminated and not getattr(agent, '_bonus_awarded', False):
+            state.get_agent(attacker_id).add_score(5)
+            agent._bonus_awarded = True
+            result.add(f"  Elimination bonus: +5 to {attacker_id.value}!")
+ 
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+# ─────────────────────────────────────────────
+# TEST Func
+# ─────────────────────────────────────────────
+ 
+if __name__ == "__main__":
+    import random
+    random.seed(42)
+ 
+    grid_chars = [
+        list("........"),
+        list(".X..F..."),
+        list("....X..."),
+        list("..M....."),
+        list(".......M"),
+        list("...X...."),
+        list("..F..X.."),
+        list("........"),
+    ]
+    start_positions = {
+        AgentID.A: (0, 0),
+        AgentID.B: (0, 7),
+        AgentID.C: (7, 3),
+    }
+    state = build_initial_state(8, 8, 30, grid_chars, start_positions)
+ 
+    print("=== Initial Board ===")
+    print(state.board)
+    print()
+ 
+    # Test 1: Legal actions for Agent A
+    actions_A = get_legal_actions(state, AgentID.A)
+    print(f"Agent A has {len(actions_A)} action combinations.")
+    print("Sample actions:", actions_A[:3])
+    print()
+ 
+    # Test 2: Move Agent A's unit0 right (0,1)
+    move_action = [
+        Action(ActionType.MOVE, 0, AgentID.A, 0, 1),
+        Action(ActionType.WAIT, 1, AgentID.A),
+    ]
+    result = execute_actions(state, AgentID.A, move_action)
+    print("=== After A moves unit0 to (0,1) ===")
+    print(result)
+    print(state.board)
+    print()
+ 
+    # Test 3: Fortify the cell A just captured
+    fortify_action = [
+        Action(ActionType.FORTIFY, 0, AgentID.A, 0, 1),
+        Action(ActionType.WAIT,    1, AgentID.A),
+    ]
+    result2 = execute_actions(state, AgentID.A, fortify_action)
+    print("=== After A fortifies (0,1) ===")
+    print(result2)
+    print(f"Cell (0,1) defense: {state.board.get_cell(0,1).defense}")
+    print()
+ 
+    # Test 4: Combat resolution (forced outcome)
+    print("=== Forced combat outcomes ===")
+    for outcome_tag in ["fail_energy", "fail", "partial", "partial_advance", "full", "critical"]:
+        s2 = state.deep_copy()
+        # Place a B-owned cell at (0,2) for testing
+        s2.board.get_cell(0, 2).owner = AgentID.B
+        s2.board.get_cell(0, 2).defense = 1
+        atk = [
+            Action(ActionType.ATTACK, 0, AgentID.A, 0, 2),
+            Action(ActionType.WAIT,   1, AgentID.A),
+        ]
+        res = execute_actions(s2, AgentID.A, atk, die_outcome=outcome_tag)
+        cell_state = s2.board.get_cell(0, 2)
+        print(f"  [{outcome_tag:16s}] → owner={cell_state.owner}, defense={cell_state.defense}")
+ 
+    print()
+    print("=== Die probability table ===")
+    for tag, prob in sorted(OUTCOME_PROBS.items()):
+        print(f"  {tag:20s}: {prob:.2f}")
+    print(f"  Total: {sum(OUTCOME_PROBS.values()):.2f}")
+ 
+    print()
+    print("=== Minefield probability table ===")
+    for tag, prob in MINEFIELD_PROBS.items():
+        print(f"  {tag:20s}: {prob:.2f}") 
 
 
 
