@@ -2,9 +2,10 @@ from enum import Enum, auto
 from dataclasses import dataclass, field
 from typing import Optional
 import copy
+import random
 
 """
-Game State
+1. Game State
 ==================================================================
 """
  
@@ -431,7 +432,90 @@ def build_initial_state(
         current_turn=AgentID.A,
     )
     return state
+
+
+"""
+2. Game Rules - Actions, Movement, Attack Resolution, Energy
+================================================================= 
+"""
+
+"""
+─────────────────────────────────────────────
+ 1. ACTION TYPES
+─────────────────────────────────────────────
+"""
  
+class ActionType(Enum):
+    MOVE    = "Move"
+    ATTACK  = "Attack"
+    FORTIFY = "Fortify"
+    WAIT    = "Wait"
+ 
+ 
+@dataclass
+class Action:
+    """One action by one unit"""
+    action_type : ActionType			# what the unit is doing
+    unit_id     : int					# the unit (0, 1, or 2 for bonus unit)
+    agent_id    : AgentID				# the agent this action belongs to
+    target_row  : Optional[int] = None	# destination row (Move/Attack/Fortify) or None (Wait)
+    target_col  : Optional[int] = None	# destination column (Move/Attack/Fortify) or None (Wait)
+ 
+    def __repr__(self):
+        loc = f"({self.target_row},{self.target_col})" if self.target_row is not None else ""
+        return f"{self.action_type.value}{loc} by {self.agent_id.value}[unit{self.unit_id}]"
+ 
+"""
+─────────────────────────────────────────────
+ 2. DIE PROBABILITY TABLE
+    9-sided die with UNEVEN probabilities
+    Each entry: (die_face, probability, outcome_tag)
+─────────────────────────────────────────────
+"""
+ 
+DIE_OUTCOMES = [
+    # face  prob    outcome tag
+    (1,     0.10,   "fail_energy"),     # fail + attacker loses 1 extra energy
+    (2,     0.10,   "fail_energy"),
+    (3,     0.15,   "fail"),            # fail, no extra penalty
+    (4,     0.08,   "partial"),         # cell -> neutral, no advance
+    (5,     0.08,   "partial"),
+    (6,     0.12,   "partial_advance"), # cell -> neutral + attacker advances onto it
+    (7,     0.13,   "full"),            # defense -1; capture if 0
+    (8,     0.13,   "full"),
+    (9,     0.11,   "critical"),        # defense -1; capture if 0; +2 bonus score
+]
+ 
+# Collapsed by outcome tag for easy probability lookup (used by search)
+OUTCOME_PROBS: dict[str, float] = {}
+for _, prob, tag in DIE_OUTCOMES:
+    OUTCOME_PROBS[tag] = OUTCOME_PROBS.get(tag, 0.0) + prob
+ 
+# Verify they sum to 1.0
+"""assert: Crashes the program if the condition is False, with the given error message."""
+assert abs(sum(OUTCOME_PROBS.values()) - 1.0) < 1e-9, "Die probabilities must sum to 1.0"
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 if __name__ == "__main__":
     # Simulate parsing the example board from the assignment
