@@ -158,3 +158,94 @@ class AgentState:
                 f"units={len(self.units)} | eliminated={self.is_eliminated})")
  
  
+"""
+─────────────────────────────────────────────
+ 5. BOARD - the grid
+─────────────────────────────────────────────
+"""
+
+class Board:
+    # Stores Cell objects in a 2D list.
+    def __init__(self, rows: int, cols: int):
+        self.rows = rows
+        self.cols = cols
+        # Initialize every cell as empty
+        self.grid: list[list[Cell]] = [
+            [Cell() for _ in range(cols)]
+            for _ in range(rows)
+        ]
+ 
+    def in_bounds(self, row: int, col: int) -> bool:
+        return 0 <= row < self.rows and 0 <= col < self.cols
+ 
+    def get_cell(self, row: int, col: int) -> Cell:
+        return self.grid[row][col]
+ 
+    def set_cell_type(self, row: int, col: int, cell_type: CellType,
+                      defense: int = 1, is_fortress: bool = False):
+        cell = self.grid[row][col]
+        cell.cell_type   = cell_type
+        cell.defense     = defense
+        cell.is_fortress = is_fortress
+ 
+	# Returns valid (row, col) neighbours in 4 directions
+    def adjacent_cells(self, row: int, col: int) -> list[tuple[int, int]]:
+        directions = [(-1,0),(1,0),(0,-1),(0,1)]
+        return [
+            (row+dr, col+dc)
+            for dr, dc in directions
+            if self.in_bounds(row+dr, col+dc)
+        ]
+ 
+    # Returns adjacent cells an agent can actually move to
+    def passable_adjacent(self, row: int, col: int) -> list[tuple[int, int]]:
+        lst = []
+        for r, c in self.adjacent_cells(row, col):
+            if self.grid[r][c].is_passable():
+                lst.append((r, c))
+        return lst
+ 
+    def count_owned(self, agent_id: AgentID) -> int:
+        count = 0
+        for row in self.grid:
+            for cell in row:
+                if cell.owner == agent_id:
+                    count += 1
+        return count
+ 
+    def total_non_obstacle_cells(self) -> int:
+        count = 0
+        for row in self.grid:
+            for cell in row:
+                if cell.cell_type != CellType.OBSTACLE:
+                    count += 1
+        return count
+ 
+    # List of (row, col, cell) for all cells owned by agent
+    def all_owned_cells(self, agent_id: AgentID) -> list[tuple[int, int, Cell]]:
+        result = []
+        for r, row in enumerate(self.grid):
+            for c, cell in enumerate(row):
+                if cell.owner == agent_id:
+                    result.append((r, c, cell))
+        return result
+ 
+    def __repr__(self):
+        lines = []
+        for row in self.grid:
+            line = ""
+            for cell in row:
+                if cell.owner:
+                    line += cell.owner.value
+                elif cell.cell_type == CellType.FORTRESS:
+                    line += 'F'
+                elif cell.cell_type == CellType.OBSTACLE:
+                    line += 'X'
+                elif cell.cell_type == CellType.MINEFIELD:
+                    line += 'M'
+                else:
+                    line += '.'
+            lines.append(line)
+        return "\n".join(lines)
+ 
+ 
