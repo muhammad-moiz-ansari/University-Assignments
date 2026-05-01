@@ -1,17 +1,18 @@
+from enum import Enum, auto
+from dataclasses import dataclass, field
+from typing import Optional
+import copy
+
 """
 Game State
 ==================================================================
 """
  
-from enum import Enum, auto
-from dataclasses import dataclass, field
-from typing import Optional
-import copy
- 
- 
-# =============================================
-# 1. ENUMS
-# =============================================
+"""
+─────────────────────────────────────────────
+ 1. ENUMS
+─────────────────────────────────────────────
+"""
  
 class CellType(Enum):
     EMPTY    = '.'   # Neutral; capturable
@@ -26,10 +27,11 @@ class AgentID(Enum):
     B = 'B'   # Intermediate
     C = 'C'   # Novice
  
- 
-# =============================================
-# 2. CELL
-# =============================================
+"""
+─────────────────────────────────────────────
+ 2. CELL - Cell on board
+─────────────────────────────────────────────
+"""
  
 @dataclass
 class Cell:
@@ -65,3 +67,42 @@ class Cell:
             return f"Cell({self.owner.value},def={self.defense},{'F' if self.is_fortress else 'O'})"
         return f"Cell({self.cell_type.value})"
  
+"""
+─────────────────────────────────────────────
+ 3. UNIT - a single agent unit on the board
+─────────────────────────────────────────────
+"""
+ 
+@dataclass
+class Unit:
+    # One unit belonging to an agent
+    unit_id       : int			 # unique id within the agent (0 or 1; bonus unit gets id 2)
+    owner         : AgentID		 # the agent this unit belongs to
+    row           : int			 # current row position on the board
+    col           : int			 # current column position on the board
+    disabled_turns: int  = 0     # counts down each turn; unit skips action while >0
+    is_bonus      : bool = False # True if this is the temporary Reinforcement bonus unit
+    bonus_turns   : int  = 0     # counts down; unit removed when reaches 0
+ 
+    def position(self) -> tuple[int, int]:
+        return (self.row, self.col)
+ 
+    def can_act(self) -> bool:
+        return self.disabled_turns == 0
+ 
+	# Call once per turn to reduce disabled countdown
+    def tick_disabled(self):
+        if self.disabled_turns > 0:
+            self.disabled_turns -= 1
+ 
+	# Call once per turn for bonus units.
+	# Returns True if the unit should be removed (lifetime expired).
+    def tick_bonus(self) -> bool:
+        if self.is_bonus:
+            self.bonus_turns -= 1
+            return self.bonus_turns <= 0
+        return False
+ 
+    def __repr__(self):
+        status = "disabled" if self.disabled_turns > 0 else "active"
+        return f"Unit({self.owner.value}{self.unit_id}@({self.row},{self.col})[{status}])"
