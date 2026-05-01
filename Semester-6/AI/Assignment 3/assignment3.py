@@ -251,7 +251,7 @@ class Board:
  
 """
 ─────────────────────────────────────────────
- 6. GAME STATE — ties everything together
+ 6. GAME STATE - ties everything together
 ─────────────────────────────────────────────
 """
  
@@ -576,8 +576,239 @@ def _cross_product(per_unit: list[list[Action]]) -> list[list[Action]]:
         result = [combo + [act] for combo in result for act in unit_actions]
     return result
  
- 
 
+"""
+─────────────────────────────────────────────
+ 5. ACTION EXECUTOR - apply actions to state
+─────────────────────────────────────────────
+"""
+ 
+@dataclass
+class ActionResult:
+    """Holds the outcome of executing a set of actions."""
+    log: list[str] = []
+    die_outcome: Optional[str] = None     # last combat outcome tag
+    minefield_outcome: Optional[str] = None
+ 
+    def add(self, msg: str):
+        self.log.append(msg)
+ 
+    def __repr__(self):
+        return "\n".join(self.log)
+ 
+ 
+def execute_actions(state: GameState, 		# GameState to mutate
+                    agent_id: AgentID,		# which agent is acting
+                    actions: list[Action],	# list of Action objects (one per unit)
+                    die_outcome: Optional[str] = None) -> ActionResult:		# if provided, use this combat outcome instead of rolling
+                     														# (used by search to enumerate branches deterministically)
+ 
+    """
+    Apply a list of actions (one per unit) to the state IN PLACE.
+    Returns:
+        ActionResult with a log of what happened.
+    """
+    result = ActionResult()
+    agent  = state.get_agent(agent_id)
+ 
+    for action in actions:
+        unit = _find_unit(agent, action.unit_id)
+        if unit is None:
+            result.add(f"[WARN] Unit {action.unit_id} not found for {agent_id.value}")
+            continue
+ 
+        if action.action_type == ActionType.WAIT:
+            _do_wait(state, agent, unit, result)
+ 
+        elif action.action_type == ActionType.MOVE:
+            _do_move(state, agent, unit, action.target_row, action.target_col,
+                     die_outcome, result)
+ 
+        elif action.action_type == ActionType.ATTACK:
+            _do_attack(state, agent, unit, action.target_row, action.target_col,
+                       die_outcome, result)
+ 
+        elif action.action_type == ActionType.FORTIFY:
+            _do_fortify(state, agent, unit, action.target_row, action.target_col, result)
+ 
+    return result
+ 
+ 
+# ─────────────────────────────────────────────
+# 6. INDIVIDUAL ACTION IMPLEMENTATIONS
+# ─────────────────────────────────────────────
+ 
+def _find_unit(agent: AgentState, unit_id: int) -> Optional[Unit]:
+    for u in agent.units:
+        if u.unit_id == unit_id:
+            return u
+    return None
+ 
+ 
+def _do_wait(state: GameState, agent: AgentState, unit: Unit, result: ActionResult):
+    """Wait costs 1 energy, does nothing else."""
+    agent.spend_energy(1)
+    result.add(f"{agent.agent_id.value}[unit{unit.unit_id}] Waits. Energy now {agent.energy}.")
+ 
+ 
+def _do_move(state: GameState, agent: AgentState, unit: Unit,
+             tr: int, tc: int, die_outcome: Optional[str],
+             result: ActionResult):
+    """
+    Move unit to (tr, tc).
+    - Empty/Minefield cell: capture immediately (if empty) or trigger mine event
+    - Opponent cell: triggers combat (same as Attack but unit moves if successful)
+    """
+    board = state.board
+    cell  = board.get_cell(tr, tc)
+ 
+    if not agent.spend_energy(1):
+        result.add(f"{agent.agent_id.value}[unit{unit.unit_id}] has no energy - Wait forced.")
+        return
+ 
+    # Move onto empty cell -> instant capture
+    if cell.cell_type == CellType.EMPTY and cell.owner is None:
+        unit.row, unit.col = tr, tc
+        cell.owner = agent.agent_id
+        result.add(f"{agent.agent_id.value}[unit{unit.unit_id}] Moves to ({tr},{tc}) - captured empty cell.")
+ 
+    # Move onto own cell -> just reposition
+    elif cell.owner == agent.agent_id:
+        unit.row, unit.col = tr, tc
+        result.add(f"{agent.agent_id.value}[unit{unit.unit_id}] Moves to own cell ({tr},{tc}).")
+ 
+    # Move onto opponent cell -> combat (attacker advances on partial_advance/capture)
+    elif cell.owner is not None and cell.owner != agent.agent_id:
+        outcome = die_outcome or _roll_die()
+        result.die_outcome = outcome
+        _resolve_combat(state, agent, unit, tr, tc, outcome, move_attack=True, result=result)
+ 
+    # Move onto Minefield
+    elif cell.cell_type == CellType.MINEFIELD:
+        unit.row, unit.col = tr, tc
+        mine_outcome = _roll_minefield()
+        result.minefield_outcome = mine_outcome
+        _resolve_minefield(state, agent, unit, tr, tc, mine_outcome, result)
+ 
+    # Move onto Fortress (unowned)
+    elif cell.cell_type == CellType.FORTRESS and cell.owner is None:
+        unit.row, unit.col = tr, tc
+        cell.owner = agent.agent_id
+        result.add(f"{agent.agent_id.value}[unit{unit.unit_id}] Captures unowned Fortress at ({tr},{tc}).")
+ 
+ 
+def _do_attack(state: GameState, agent: AgentState, unit: Unit,
+               tr: int, tc: int, die_outcome: Optional[str],
+               result: ActionResult):
+    """Attack adjacent opponent cell without moving."""
+    board = state.board
+    cell  = board.get_cell(tr, tc)
+ 
+    if not agent.spend_energy(1):
+        result.add(f"{agent.agent_id.value}[unit{unit.unit_id}] has no energy - Wait forced.")
+        return
+ 
+    if cell.owner is None or cell.owner == agent.agent_id:
+        result.add(f"[WARN] ({tr},{tc}) is not an opponent cell - Attack invalid.")
+        return
+ 
+    outcome = die_outcome or _roll_die()
+    result.die_outcome = outcome
+    _resolve_combat(state, agent, unit, tr, tc, outcome, move_attack=False, result=result)
+ 
+ 
+def _do_fortify(state: GameState, agent: AgentState, unit: Unit,
+                tr: int, tc: int, result: ActionResult):
+    """Increase defense of own adjacent cell by 1 (max 3)."""
+    board = state.board
+    cell  = board.get_cell(tr, tc)
+ 
+    if not agent.spend_energy(1):
+        result.add(f"{agent.agent_id.value}[unit{unit.unit_id}] has no energy - Wait forced.")
+        return
+ 
+    if cell.owner != agent.agent_id:
+        result.add(f"[WARN] ({tr},{tc}) not owned by {agent.agent_id.value} - Fortify invalid.")
+        return
+ 
+    if cell.defense >= 3:
+        result.add(f"{agent.agent_id.value}[unit{unit.unit_id}] Fortify at ({tr},{tc}) - already at max defense 3.")
+        return
+ 
+    cell.defense += 1
+    result.add(f"{agent.agent_id.value}[unit{unit.unit_id}] Fortifies ({tr},{tc}) - defense now {cell.defense}.")
+ 
+ 
+# ─────────────────────────────────────────────
+# 7. COMBAT RESOLUTION
+# ─────────────────────────────────────────────
+ 
+def _resolve_combat(state: GameState, agent: AgentState, unit: Unit,
+                    tr: int, tc: int, outcome: str,
+                    move_attack: bool, result: ActionResult):
+    """
+    Apply a combat outcome to the target cell.
+ 
+    outcome tags:
+        fail_energy     -> attack fails; attacker loses 1 extra energy
+        fail            -> attack fails; no extra penalty
+        partial         -> cell becomes neutral
+        partial_advance -> cell becomes neutral; attacker moves onto it
+        full            -> defense -1; capture if 0
+        critical        -> defense -1; capture if 0; +2 bonus score
+    """
+    board     = state.board
+    cell      = board.get_cell(tr, tc)
+    defender_id = cell.owner
+    defender  = state.get_agent(defender_id) if defender_id else None
+ 
+    if outcome in ("fail_energy", "fail"):
+        if outcome == "fail_energy":
+            agent.spend_energy(1)   # extra energy loss on top of action cost
+            result.add(f"  Combat FAIL (energy penalty): {agent.agent_id.value} loses 1 extra energy -> {agent.energy} left.")
+        else:
+            result.add(f"  Combat FAIL: {agent.agent_id.value} attack on ({tr},{tc}) repelled.")
+ 
+    elif outcome in ("partial", "partial_advance"):
+        old_owner = cell.owner
+        cell.reset_to_empty()
+        result.add(f"  Combat PARTIAL: ({tr},{tc}) becomes neutral (was {old_owner.value if old_owner else '?'}).")
+        if outcome == "partial_advance" and move_attack:
+            unit.row, unit.col = tr, tc
+            result.add(f"  Attacker {agent.agent_id.value}[unit{unit.unit_id}] advances onto ({tr},{tc}).")
+ 
+    elif outcome in ("full", "critical"):
+        cell.defense -= 1
+        result.add(f"  Combat {'FULL' if outcome=='full' else 'CRITICAL'}: ({tr},{tc}) defense -> {cell.defense}.")
+ 
+        if cell.defense <= 0:
+            # Capture
+            old_owner = cell.owner
+            cell.owner   = agent.agent_id
+            cell.defense = 1  # reset defense for new owner (Fortress keeps is_fortress)
+            result.add(f"  CAPTURED ({tr},{tc}) from {old_owner.value if old_owner else '?'} by {agent.agent_id.value}!")
+ 
+            if move_attack:
+                unit.row, unit.col = tr, tc
+ 
+            if outcome == "critical":
+                agent.add_score(2)
+                result.add(f"  Critical bonus: +2 score to {agent.agent_id.value} -> {agent.score}.")
+ 
+            # Check if defender is eliminated (no units and no owned cells)
+            if defender:
+                _check_elimination(state, defender_id, result)
+ 
+ 
+def _check_elimination(state: GameState, agent_id: AgentID, result: ActionResult):
+    """Eliminate agent if they have no units left."""
+    agent = state.get_agent(agent_id)
+    if len(agent.units) == 0:
+        agent.is_eliminated = True
+        # Award +5 to whoever eliminated them (last attacker implicit via context)
+        result.add(f"  {agent_id.value} has been ELIMINATED!")
+ 
+ 
 
 
 
