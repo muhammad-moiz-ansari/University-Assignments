@@ -1427,6 +1427,218 @@ def evaluate(state: GameState, agent_id: AgentID, eval_factors: int) -> float:
  
 
 
+# ─────────────────────────────────────────────
+# 4. TRANSPOSITION TABLE
+# ─────────────────────────────────────────────
+ 
+class TranspositionTable:
+    """
+    Simple hash-map for Expert agent.
+    Stores (value, depth) so shallower cached results aren't used for deeper searches.
+    """
+    def __init__(self):
+        self._table: dict[int, tuple[float, int]] = {}
+ 
+    def _hash(self, state: GameState, agent_id: AgentID, depth: int) -> int:
+        """
+        Lightweight state hash. Uses board ownership layout + agent energies/scores.
+        """
+        board = state.board
+        key_parts = []
+        for r in range(board.rows):
+            for c in range(board.cols):
+                cell = board.get_cell(r, c)
+                key_parts.append(
+                    (cell.owner.value if cell.owner else '_',
+                     cell.defense,
+                     cell.cell_type.value)
+                )
+        for aid in AgentID:
+            ag = state.get_agent(aid)
+            key_parts.append((ag.energy, ag.score, ag.is_eliminated))
+        key_parts.append((agent_id.value, depth))
+        return hash(tuple(str(x) for x in key_parts))
+ 
+    def get(self, state: GameState, agent_id: AgentID,
+            depth: int) -> Optional[float]:
+        h = self._hash(state, agent_id, depth)
+        entry = self._table.get(h)
+        if entry and entry[1] >= depth:
+            return entry[0]
+        return None
+ 
+    def put(self, state: GameState, agent_id: AgentID,
+            depth: int, value: float):
+        h = self._hash(state, agent_id, depth)
+        self._table[h] = (value, depth)
+ 
+    def clear(self):
+        self._table.clear()
+ 
+    def __len__(self):
+        return len(self._table)
+ 
+ 
+# One global transposition table for the Expert agent
+_expert_tt = TranspositionTable()
+ 
+ 
+# ─────────────────────────────────────────────
+# 5. EXPECTIMINIMAX WITH ALPHA-BETA
+# ─────────────────────────────────────────────
+ 
+def expectiminimax(
+    state      : GameState,      # current game state (will be deep-copied for each branch)
+    agent_id   : AgentID,        # the agent whose turn this is
+    root_agent : AgentID,        # the agent we're computing utility FOR
+    depth      : int,            # remaining depth
+    alpha      : float,          # alpha bound
+    beta       : float,          # beta bound
+    config     : AgentConfig,    # root agent's config (controls depth limit etc.)
+    stats      : SearchStats,    # mutable stats object to track nodes explored/pruned
+    is_max     : bool = True,    # True if this is a MAX node (root_agent's turn)
+) -> float:
+    """
+    Expectiminimax search.
+    Returns:
+        Expected utility value from root_agent's perspective.
+    """
+    stats.nodes_explored += 1
+ 
+    # ── Terminal / cutoff ──────────────────────────────────────────────────
+    if state.is_terminal() or depth == 0:
+        return evaluate(state, root_agent, config.eval_factors)
+ 
+    # ── Transposition table lookup (Expert only) ───────────────────────────
+    if config.use_transposition:
+        cached = _expert_tt.get(state, root_agent, depth)
+        if cached is not None:
+            return cached
+ 
+    # ── MAX node (root agent's turn) ───────────────────────────────────────
+    if is_max:
+        best_val = -math.inf
+        actions_list = get_legal_actions(state, root_agent)
+ 
+        for actions in actions_list:
+            # After agent acts, go to CHANCE node before opponents move
+            chance_val = _chance_node(
+                state, root_agent, actions,
+                next_agent_id=_next_agent(state, root_agent),
+                root_agent=root_agent,
+                depth=depth - 1,
+                alpha=alpha, beta=beta,
+                config=config, stats=stats,
+            )
+            if chance_val > best_val:
+                best_val = chance_val
+            alpha = max(alpha, best_val)
+            if beta <= alpha:
+                stats.nodes_pruned += len(actions_list)  # approximate remaining
+                break
+ 
+        if config.use_transposition:
+            _expert_tt.put(state, root_agent, depth, best_val)
+        return best_val
+ 
+    # ── MIN node (opponent's turn) ─────────────────────────────────────────
+    else:
+        worst_val = math.inf
+        actions_list = get_legal_actions(state, agent_id)
+ 
+        for actions in actions_list:
+            next_agent = _next_agent(state, agent_id)
+            # Determine if next node is MAX or MIN
+            next_is_max = (next_agent == root_agent)
+ 
+            child_val = _chance_node(
+                state, agent_id, actions,
+                next_agent_id=next_agent,
+                root_agent=root_agent,
+                depth=depth - 1,
+                alpha=alpha, beta=beta,
+                config=config, stats=stats,
+                next_is_max=next_is_max,
+            )
+            if child_val < worst_val:
+                worst_val = child_val
+            beta = min(beta, worst_val)
+            if beta <= alpha:
+                stats.nodes_pruned += len(actions_list)
+                break
+ 
+        if config.use_transposition:
+            _expert_tt.put(state, root_agent, depth, worst_val)
+        return worst_val
+ 
+ 
+def _chance_node(
+    state        : GameState,
+    acting_agent : AgentID,
+    actions      : list[Action],
+    next_agent_id: AgentID,
+    root_agent   : AgentID,
+    depth        : int,
+    alpha        : float,
+    beta         : float,
+    config       : AgentConfig,
+    stats        : SearchStats,
+    next_is_max  : bool = False,
+) -> float:
+    """
+    Chance node: enumerate die outcome branches and return the probability-weighted average of child values.
+    NO pruning here - all branches must be evaluated.
+ 
+    Only evaluates branches in config.chance_branches (Novice gets top-2).
+    Probabilities of excluded branches are redistributed proportionally so they still sum to 1.0.
+    """
+    stats.nodes_explored += 1
+ 
+    # Filter to this agent's allowed branches
+    allowed = config.chance_branches
+    raw_probs = {tag: OUTCOME_PROBS[tag] for tag in allowed if tag in OUTCOME_PROBS}
+    total_prob = sum(raw_probs.values())
+ 
+    expected_val = 0.0
+ 
+    for outcome_tag, raw_prob in raw_probs.items():
+        # Normalise probability among allowed branches
+        prob = raw_prob / total_prob
+ 
+        # Apply actions with this forced die outcome
+        child_state = state.deep_copy()
+        execute_actions(child_state, acting_agent, actions, die_outcome=outcome_tag)
+        tick_units(child_state, acting_agent)
+ 
+        # Recurse into next agent's node
+        child_val = expectiminimax(
+            state      = child_state,
+            agent_id   = next_agent_id,
+            root_agent = root_agent,
+            depth      = depth,
+            alpha      = alpha,
+            beta       = beta,
+            config     = config,
+            stats      = stats,
+            is_max     = next_is_max,
+        )
+        expected_val += prob * child_val
+ 
+    return expected_val
+ 
+ 
+def _next_agent(state: GameState, current: AgentID) -> AgentID:
+    """Return the next active agent after current in turn order."""
+    order  = state.turn_order
+    active = state.active_agents()
+    idx    = order.index(current)
+    # Cycle through turn order, skipping eliminated agents
+    for i in range(1, len(order) + 1):
+        candidate = order[(idx + i) % len(order)]
+        if candidate in active or candidate == current:
+            return candidate
+    return current
+ 
 
 
 
