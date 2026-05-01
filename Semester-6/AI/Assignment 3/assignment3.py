@@ -432,4 +432,47 @@ def build_initial_state(
     )
     return state
  
+
+if __name__ == "__main__":
+    # Simulate parsing the example board from the assignment
+    grid_chars = [
+        list("........"),
+        list(".X..F..."),
+        list("....X..."),
+        list("..M....."),
+        list(".......M"),
+        list("...X...."),
+        list("..F..X.."),
+        list("........"),
+    ]
+    start_positions = {
+        AgentID.A: (0, 0),
+        AgentID.B: (0, 7),
+        AgentID.C: (7, 3),
+    }
  
+    state = build_initial_state(
+        rows=8, cols=8, max_rounds=30,
+        grid_chars=grid_chars,
+        start_positions=start_positions
+    )
+ 
+    print(state)
+    print()
+    print("--- Cell checks ---")
+    print("(0,0):", state.board.get_cell(0,0))
+    print("(1,1):", state.board.get_cell(1,1))   # obstacle
+    print("(1,4):", state.board.get_cell(1,4))   # fortress
+    print("(3,2):", state.board.get_cell(3,2))   # minefield
+    print()
+    print("--- Agent checks ---")
+    for aid in AgentID:
+        agent = state.get_agent(aid)
+        print(agent)
+        for u in agent.units:
+            print(" ", u)
+    print()
+    print("Non-obstacle cells:", state.board.total_non_obstacle_cells())
+    print("Terminal?", state.is_terminal())
+    print("Observable cells for A (full):", len(state.get_observable_cells(AgentID.A, -1)))
+    print("Observable cells for C (r=3):", len(state.get_observable_cells(AgentID.C, 3)))
