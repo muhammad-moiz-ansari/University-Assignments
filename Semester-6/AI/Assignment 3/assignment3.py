@@ -248,4 +248,109 @@ class Board:
             lines.append(line)
         return "\n".join(lines)
  
+"""
+─────────────────────────────────────────────
+ 6. GAME STATE — ties everything together
+─────────────────────────────────────────────
+"""
  
+@dataclass
+class GameState:
+    board        : Board				# the grid
+    agents       : dict            		# dict mapping AgentID -> AgentState
+    round_number : int  = 1				# the round we're in
+    max_rounds   : int  = 30			# max game rounds
+    current_turn : AgentID = AgentID.A	# whose turn it is 
+    move_number  : int  = 0				# global move counter (increments each individual unit action)
+    fog_active   : bool = False			# True during a Fog of War event turn (visibility radius halved for that turn)
+    turn_order   : list = field(default_factory=lambda: [AgentID.A, AgentID.B, AgentID.C])	# fixed order agents take turns in
+ 
+    def get_agent(self, agent_id: AgentID) -> AgentState:
+        return self.agents[agent_id]
+ 
+    def active_agents(self) -> list[AgentID]:
+        """Agents still in the game (not eliminated)"""
+        return [aid for aid in self.turn_order if not self.agents[aid].is_eliminated]
+ 
+    def is_terminal(self) -> bool:
+        """Check if the game should end"""
+        active = self.active_agents()
+ 
+        # Only one agent left
+        if len(active) <= 1:
+            return True
+ 
+        # Max rounds reached
+        if self.round_number > self.max_rounds:
+            return True
+ 
+        # Any agent controls >60% of non-obstacle cells
+        total = self.board.total_non_obstacle_cells()
+        threshold = total * 0.6
+        for aid in active:
+            if self.board.count_owned(aid) > threshold:
+                return True
+ 
+        return False
+ 
+    def winner(self) -> Optional[AgentID]:
+        """Determine winner at game end. None if game not over"""
+        if not self.is_terminal():
+            return None
+        # Highest score wins
+        active = self.active_agents()
+        if not active:
+            return None
+        return max(active, key=lambda aid: self.agents[aid].score)
+ 
+    def score_round(self):
+        """
+        Award points to each agent for cells they own this round.
+        Call once per round after all agents have taken their turns.
+        """
+        for aid in self.active_agents():
+            agent = self.agents[aid]
+            for row in self.board.grid:
+                for cell in row:
+                    if cell.owner == aid:
+                        agent.add_score(cell.score_value())
+ 
+    def deep_copy(self) -> 'GameState':
+        """
+        Create a full deep copy of the game state.
+        Used by Expectiminimax to explore branches without mutating the real state.
+        """
+        return copy.deepcopy(self)
+ 
+    def get_observable_cells(self, agent_id: AgentID, radius: int) -> set[tuple[int, int]]:
+        """
+        Return the set of (row, col) positions visible to the given agent.
+        radius=-1 means full board visibility (Expert agent).
+        During Fog of War, radius is halved (handled by caller).
+        """
+        if radius < 0:
+            # Full board visibility
+            return {
+                (r, c)
+                for r in range(self.board.rows)
+                for c in range(self.board.cols)
+            }
+ 
+        visible = set()
+        agent = self.agents[agent_id]
+        for unit in agent.units:
+            for r in range(self.board.rows):
+                for c in range(self.board.cols):
+                    # Manhattan distance visibility
+                    if abs(r - unit.row) + abs(c - unit.col) <= radius:
+                        visible.add((r, c))
+        return visible
+ 
+    def __repr__(self):
+        lines = [f"=== Round {self.round_number}/{self.max_rounds} | Turn: {self.current_turn.value} ==="]
+        lines.append(repr(self.board))
+        for aid, agent in self.agents.items():
+            lines.append(repr(agent))
+        return "\n".join(lines)
+ 
+print(GameState.active_agents.__doc__)
