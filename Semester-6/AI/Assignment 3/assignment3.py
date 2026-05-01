@@ -353,4 +353,83 @@ class GameState:
             lines.append(repr(agent))
         return "\n".join(lines)
  
-print(GameState.active_agents.__doc__)
+
+# ─────────────────────────────────────────────
+# 7. FACTORY - builds a fresh GameState from parsed board data
+# ─────────────────────────────────────────────
+ 
+def build_initial_state(
+    rows: int,
+    cols: int,
+    max_rounds: int,
+    grid_chars: list[list[str]],
+    start_positions: dict[AgentID, tuple[int, int]]
+) -> GameState:
+    """
+    Build a fresh GameState from the parsed board.txt data.
+ 
+    Arguments:
+        rows, cols     : board dimensions
+        max_rounds     : R from board.txt
+        grid_chars     : 2D list of chars ('.', 'X', 'F', 'M')
+        start_positions: {AgentID: (row, col)} for each agent
+        
+    Returns:
+        A fully initialised GameState ready to play.
+    """
+    board = Board(rows, cols)
+ 
+    # Fill in the grid
+    char_to_type = {
+        '.': (CellType.EMPTY,     1, False),
+        'X': (CellType.OBSTACLE,  0, False),
+        'F': (CellType.FORTRESS,  2, True),
+        'M': (CellType.MINEFIELD, 1, False),
+    }
+    for r, row in enumerate(grid_chars):
+        for c, ch in enumerate(row):
+            cell_type, defense, is_fortress = char_to_type.get(ch, (CellType.EMPTY, 1, False))
+            board.set_cell_type(r, c, cell_type, defense, is_fortress)
+ 
+    # Agent configurations - structurally encoded here (not if-else in search)
+    AGENT_CONFIGS = {
+        AgentID.A: {"label": "Expert",       "start_energy": 20},
+        AgentID.B: {"label": "Intermediate", "start_energy": 20},
+        AgentID.C: {"label": "Novice",       "start_energy": 20},
+    }
+ 
+    agents = {}
+    for aid, config in AGENT_CONFIGS.items():
+        agent = AgentState(agent_id=aid, energy=config["start_energy"])
+ 
+        # Place 2 starting units
+        row, col = start_positions[aid]
+        for uid in range(2):
+            # Second unit goes to an adjacent cell if possible, else same cell
+            if uid == 0:
+                ur, uc = row, col
+            else:
+                # Find first passable adjacent cell for unit 1
+                adj = board.passable_adjacent(row, col)
+                ur, uc = adj[0] if adj else (row, col)
+ 
+            unit = Unit(unit_id=uid, owner=aid, row=ur, col=uc)
+            agent.units.append(unit)
+ 
+            # Agent starts by owning their starting cell
+            cell = board.get_cell(ur, uc)
+            if cell.cell_type not in (CellType.OBSTACLE,):
+                cell.owner = aid
+                cell.cell_type = CellType.OWNED if cell.cell_type == CellType.EMPTY else cell.cell_type
+ 
+        agents[aid] = agent
+ 
+    state = GameState(
+        board=board,
+        agents=agents,
+        max_rounds=max_rounds,
+        current_turn=AgentID.A,
+    )
+    return state
+ 
+ 
