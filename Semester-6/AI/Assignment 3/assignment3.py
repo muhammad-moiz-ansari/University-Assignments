@@ -495,7 +495,88 @@ for _, prob, tag in DIE_OUTCOMES:
 """assert: Crashes the program if the condition is False, with the given error message."""
 assert abs(sum(OUTCOME_PROBS.values()) - 1.0) < 1e-9, "Die probabilities must sum to 1.0"
  
+"""
+─────────────────────────────────────────────
+ 3. MINEFIELD EVENT TABLE
+─────────────────────────────────────────────
+"""
+ 
+MINEFIELD_OUTCOMES = [
+    # outcome_tag         probability
+    ("safe",              0.40),   # no effect
+    ("energy_drain",      0.30),   # agent loses 3 energy
+    ("unit_disabled",     0.20),   # this unit can't act for 2 turns
+    ("detonation",        0.10),   # cell -> obstacle; agent loses 5 energy
+]
+MINEFIELD_PROBS: dict[str, float] = {tag: p for tag, p in MINEFIELD_OUTCOMES}
+ 
+"""
+─────────────────────────────────────────────
+ 4. ACTION GENERATOR - what moves are legal
+─────────────────────────────────────────────
+"""
 
+def get_legal_actions(state: GameState, agent_id: AgentID) -> list[list[Action]]:
+    """
+    Returns a list of action COMBINATIONS for the agent this turn.
+    Each element is a list of Actions (one per active unit).
+    """
+    agent = state.get_agent(agent_id)
+ 
+    # Collect per-unit action lists
+    per_unit_actions: list[list[Action]] = []
+    for unit in agent.units:
+        unit_actions = _get_unit_actions(state, agent, unit)
+        per_unit_actions.append(unit_actions)
+ 
+    # Cross product: combine one action per unit
+    combos = _cross_product(per_unit_actions)
+    return combos
+ 
+ 
+def _get_unit_actions(state: GameState, agent: AgentState, unit: Unit) -> list[Action]:
+    """Legal actions for a single unit."""
+    actions = []
+    aid = agent.agent_id
+ 
+    # Always legal: Wait
+    actions.append(Action(ActionType.WAIT, unit.unit_id, aid))
+ 
+    # No energy or disabled -> only Wait
+    if agent.energy <= 0 or not unit.can_act():
+        return actions
+ 
+    board = state.board
+    r, c = unit.row, unit.col
+ 
+    for nr, nc in board.adjacent_cells(r, c):
+        cell = board.get_cell(nr, nc)
+ 
+        # MOVE: to any passable cell
+        if cell.is_passable():
+            actions.append(Action(ActionType.MOVE, unit.unit_id, aid, nr, nc))
+ 
+        # ATTACK: opponent-owned adjacent cell (without moving)
+        if cell.owner is not None and cell.owner != aid:
+            actions.append(Action(ActionType.ATTACK, unit.unit_id, aid, nr, nc))
+ 
+        # FORTIFY: own adjacent cell (defense < 3)
+        if cell.owner == aid and cell.defense < 3:
+            actions.append(Action(ActionType.FORTIFY, unit.unit_id, aid, nr, nc))
+ 
+    return actions
+ 
+ 
+def _cross_product(per_unit: list[list[Action]]) -> list[list[Action]]:
+    """Cartesian product of per-unit action lists."""
+    if not per_unit:
+        return [[]]
+    result = [[]]
+    for unit_actions in per_unit:
+        result = [combo + [act] for combo in result for act in unit_actions]
+    return result
+ 
+ 
 
 
 
