@@ -1,12 +1,8 @@
 from enum import Enum, auto
 from dataclasses import dataclass, field
 from typing import Optional
-import copy
-import random
-import math
-import time
-import os
-import sys
+import copy, random, math, time, os, sys, threading
+import dearpygui.dearpygui as dpg
 
 """
 1. Game State
@@ -322,10 +318,34 @@ class GameState:
  
     def deep_copy(self) -> 'GameState':
         """
-        Create a full deep copy of the game state.
+        Create a fast deep copy of the game state.
         Used by Expectiminimax to explore branches without mutating the real state.
         """
-        return copy.deepcopy(self)
+        new_board = Board(self.board.rows, self.board.cols)
+        for r in range(self.board.rows):
+            for c in range(self.board.cols):
+                cell = self.board.grid[r][c]
+                new_board.grid[r][c] = Cell(cell.cell_type, cell.owner, cell.defense, cell.is_fortress, cell.temp_fortress_rounds)
+        
+        new_agents = {}
+        for aid, agent in self.agents.items():
+            new_units = [Unit(u.unit_id, u.owner, u.row, u.col, u.disabled_turns, u.is_bonus, u.bonus_turns) for u in agent.units]
+            new_agent = AgentState(agent.agent_id, agent.energy, agent.score, new_units, agent.is_eliminated)
+            if hasattr(agent, '_bonus_awarded'):
+                new_agent._bonus_awarded = agent._bonus_awarded
+            new_agents[aid] = new_agent
+            
+        new_state = GameState(
+            board=new_board,
+            agents=new_agents,
+            round_number=self.round_number,
+            max_rounds=self.max_rounds,
+            current_turn=self.current_turn,
+            move_number=self.move_number,
+            fog_active=self.fog_active,
+            turn_order=list(self.turn_order)
+        )
+        return new_state
  
     def get_observable_cells(self, agent_id: AgentID, radius: int) -> set[tuple[int, int]]:
         """
@@ -1015,7 +1035,7 @@ def _apply_supply_drop(state: GameState, result: EventResult):
     ]
  
     if not candidates:
-        result.log.append("Supply Drop: no empty cells available — skipped.")
+        result.log.append("Supply Drop: no empty cells available - skipped.")
         return
  
     r, c = random.choice(candidates)
@@ -1031,7 +1051,7 @@ def _apply_supply_drop(state: GameState, result: EventResult):
 def _apply_earthquake(state: GameState, result: EventResult):
     """
     Earthquake: one randomly selected owned cell loses 1 defense.
-    If defense reaches 0 the cell reverts to Empty (no capture — just abandoned).
+    If defense reaches 0 the cell reverts to Empty (no capture - just abandoned).
     """
     board = state.board
     owned_cells = [
@@ -1042,7 +1062,7 @@ def _apply_earthquake(state: GameState, result: EventResult):
     ]
  
     if not owned_cells:
-        result.log.append("Earthquake: no owned cells — skipped.")
+        result.log.append("Earthquake: no owned cells - skipped.")
         return
  
     r, c = random.choice(owned_cells)
@@ -1053,11 +1073,11 @@ def _apply_earthquake(state: GameState, result: EventResult):
     if cell.defense <= 0:
         cell.reset_to_empty()
         result.log.append(
-            f"Earthquake: ({r},{c}) owned by {old_owner.value} lost its last defense — reverts to Empty."
+            f"Earthquake: ({r},{c}) owned by {old_owner.value} lost its last defense - reverts to Empty."
         )
     else:
         result.log.append(
-            f"Earthquake: ({r},{c}) owned by {old_owner.value} — defense reduced to {cell.defense}."
+            f"Earthquake: ({r},{c}) owned by {old_owner.value} - defense reduced to {cell.defense}."
         )
  
  
@@ -1074,7 +1094,7 @@ def _apply_reinforcement(state: GameState, result: EventResult):
     active = [aid for aid in AgentID if not state.get_agent(aid).is_eliminated]
  
     if not active:
-        result.log.append("Reinforcement: no active agents — skipped.")
+        result.log.append("Reinforcement: no active agents - skipped.")
         return
  
     # Find agent with lowest score
@@ -1086,7 +1106,7 @@ def _apply_reinforcement(state: GameState, result: EventResult):
  
     if placement is None:
         result.log.append(
-            f"Reinforcement: {weakest_id.value} is weakest but no valid placement found — skipped."
+            f"Reinforcement: {weakest_id.value} is weakest but no valid placement found - skipped."
         )
         return
  
@@ -1258,7 +1278,7 @@ Core AI search for all three agents.
 class AgentConfig:
     """
     Structural definition of an agent's cognitive capability.
-    The search engine reads ONLY these fields — never agent ID directly.
+    The search engine reads ONLY these fields - never agent ID directly.
     """
     agent_id         : AgentID
     max_depth        : int
@@ -1276,7 +1296,7 @@ ALL_BRANCHES     = list(OUTCOME_PROBS.keys())                  # all 6 collapsed
 AGENT_CONFIGS: dict[AgentID, AgentConfig] = {
     AgentID.A: AgentConfig(
         agent_id          = AgentID.A,
-        max_depth         = 7,
+        max_depth         = 3,
         obs_radius        = -1,
         chance_branches   = ALL_BRANCHES,
         eval_factors      = 5,
@@ -1284,7 +1304,7 @@ AGENT_CONFIGS: dict[AgentID, AgentConfig] = {
     ),
     AgentID.B: AgentConfig(
         agent_id          = AgentID.B,
-        max_depth         = 5,
+        max_depth         = 2,
         obs_radius        = 5,
         chance_branches   = ALL_BRANCHES,
         eval_factors      = 3,
@@ -1292,7 +1312,7 @@ AGENT_CONFIGS: dict[AgentID, AgentConfig] = {
     ),
     AgentID.C: AgentConfig(
         agent_id          = AgentID.C,
-        max_depth         = 3,
+        max_depth         = 1,
         obs_radius        = 3,
         chance_branches   = NOVICE_BRANCHES,
         eval_factors      = 1,
@@ -1397,7 +1417,7 @@ def evaluate(state: GameState, agent_id: AgentID, eval_factors: int) -> float:
  
     # ── Factor 4: Threat assessment ────────────────────────────────────────
     # Opponent units adjacent to owned cells threaten captures next turn.
-    # Penalty for each such threat — defensive awareness.
+    # Penalty for each such threat - defensive awareness.
     threat_count = 0
     for r in range(board.rows):
         for c in range(board.cols):
@@ -1459,7 +1479,7 @@ class TranspositionTable:
             ag = state.get_agent(aid)
             key_parts.append((ag.energy, ag.score, ag.is_eliminated))
         key_parts.append((agent_id.value, depth))
-        return hash(tuple(str(x) for x in key_parts))
+        return hash(tuple(key_parts))
  
     def get(self, state: GameState, agent_id: AgentID,
             depth: int) -> Optional[float]:
@@ -1700,7 +1720,9 @@ def choose_best_action(
  
     best_val     = -math.inf
     best_actions = actions_list[0] if actions_list else []
- 
+    alpha        = -math.inf
+    beta         = math.inf
+
     for actions in actions_list:
         # Each top-level action goes through a chance node first
         chance_val = _chance_node(
@@ -1710,8 +1732,8 @@ def choose_best_action(
             next_agent_id= _next_agent(state, agent_id),
             root_agent   = agent_id,
             depth        = config.max_depth - 1,
-            alpha        = -math.inf,
-            beta         = math.inf,
+            alpha        = alpha,
+            beta         = beta,
             config       = config,
             stats        = stats,
             next_is_max  = False,   # after our move it's opponents' turn (MIN)
@@ -1719,7 +1741,12 @@ def choose_best_action(
         if chance_val > best_val:
             best_val     = chance_val
             best_actions = actions
- 
+        
+        alpha = max(alpha, best_val)
+        if beta <= alpha:
+            stats.nodes_pruned += len(actions_list) - actions_list.index(actions) - 1
+            break
+
     action_label = _actions_label(best_actions)
  
     report = MoveReport(
@@ -1754,7 +1781,7 @@ def _actions_label(actions: list[Action]) -> str:
 def print_summary_table(reports: list[MoveReport]):
     """Print end-of-game summary table (Section 6.2)."""
     print("\n" + "="*65)
-    print("GAME SUMMARY — Search Statistics")
+    print("GAME SUMMARY - Search Statistics")
     print("="*65)
     print(f"{'Agent':<12} {'Moves':>6} {'Nodes':>10} {'Pruned':>10} {'Efficiency':>12}")
     print("-"*65)
@@ -1808,7 +1835,7 @@ def parse_board(filepath: str) -> tuple[int, int, int, list[list[str]], dict]:
  
     if len(lines) < 5:
         raise ValueError(
-            f"board.txt too short — expected at least 5 lines, got {len(lines)}"
+            f"board.txt too short - expected at least 5 lines, got {len(lines)}"
         )
  
     # Line 1: N M R
@@ -1942,7 +1969,7 @@ class ResultsWriter:
 def _write_summary_table_to_file(writer: ResultsWriter, reports: list[MoveReport]):
     """Write the summary table to both file and console."""
     writer.write("\n" + "="*65)
-    writer.write("GAME SUMMARY — Search Statistics")
+    writer.write("GAME SUMMARY - Search Statistics")
     writer.write("="*65)
     writer.write(
         f"{'Agent':<20} {'Moves':>6} {'Nodes':>10} {'Pruned':>10} {'Efficiency':>12}"
@@ -2106,7 +2133,7 @@ class GameLoop:
             if not agent.is_eliminated:
                 if len(agent.units) == 0:
                     agent.is_eliminated = True
-                    self.writer.write(f"  [ELIM] {aid.value} has no units — eliminated!")
+                    self.writer.write(f"  [ELIM] {aid.value} has no units - eliminated!")
  
         # Print board snapshot
         self.writer.write(f"\n  Board after round {state.round_number}:")
@@ -2155,7 +2182,7 @@ def main(board_path: str = "board.txt",
     state  = build_initial_state(rows, cols, max_rounds, grid_chars, start_positions)
     writer = ResultsWriter(results_path)
  
-    writer.write(f"Stochastic Battlefield Game — {rows}x{cols} board, {max_rounds} rounds")
+    writer.write(f"Stochastic Battlefield Game - {rows}x{cols} board, {max_rounds} rounds")
     writer.write(f"Agents: A(Expert,d=7), B(Intermediate,d=5), C(Novice,d=3)")
     writer.write("="*65 + "\n")
  
@@ -2165,73 +2192,425 @@ def main(board_path: str = "board.txt",
     print(f"\nResults written to: {results_path}")
     return final_state
  
- 
-# ─────────────────────────────────────────────
-# TEST Part
-# ─────────────────────────────────────────────
- 
-if __name__ == "__main__":
-    import tempfile, os
- 
-    # Write a temp board.txt
-    board_content = """8 8 30
-........
-.X..F...
-....X...
-..M.....
-.......M
-...X....
-..F..X..
-........
-0 0
-0 7
-7 3
-"""
-    board_path   = "board.txt"
-    results_path = "results_test.txt"
- 
-    with open(board_path, 'w') as f:
-        f.write(board_content)
- 
-    print("=== Parser test ===")
-    rows, cols, max_rounds, grid_chars, starts = parse_board(board_path)
-    print(f"Parsed: {rows}x{cols}, {max_rounds} rounds")
-    print(f"Grid row 0: {''.join(grid_chars[0])}")
-    print(f"Grid row 1: {''.join(grid_chars[1])}")
-    print(f"Starts: {starts}")
-    print()
- 
-    # Run 3 rounds with RANDOM actions (fast, no search)
-    print("=== Game loop test (random actions, 3 rounds max) ===")
-    state = build_initial_state(rows, cols, max_rounds, grid_chars, starts)
-    state.max_rounds = 3   # cap for speed
- 
-    writer = ResultsWriter(results_path)
-    writer.write("TEST RUN — random actions, 3 rounds\n")
- 
-    loop = GameLoop(state, writer, use_search=False)
-    random.seed(99)
-    final = loop.run()
- 
-    print(f"\nFinal board:\n{final.board}")
-    print(f"\nresults written to {results_path}")
-    print()
- 
-    # Parser error handling
-    print("=== Parser error tests ===")
-    bad_cases = [
-        ("bad_dims",   "8 8\n........\n"),           # missing R
-        ("bad_char",   "8 8 30\n....Z...\n"),         # invalid char
-        ("bad_start",  "8 8 30\n" + "........\n"*8 + "0 0\n0 7\n9 9\n"),  # out of bounds
-    ]
-    for label, content in bad_cases:
-        path = f"bad_{label}.txt"
-        with open(path, 'w') as f:
-            f.write(content)
-        try:
-            parse_board(path)
-            print(f"  [{label}] ERROR: should have raised")
-        except (ValueError, FileNotFoundError) as e:
-            print(f"  [{label}] Caught correctly: {e}")
-        os.remove(path)
 
+
+"""
+Step 6: GUI - Dear PyGui Interface
+====================================
+"""
+
+# ─────────────────────────────────────────────
+# COLOURS
+# ─────────────────────────────────────────────
+
+COL_EMPTY     = (40,  40,  40,  255)   # dark grey
+COL_OBSTACLE  = (20,  20,  20,  255)   # near-black
+COL_FORTRESS  = (180, 140, 0,   255)   # gold
+COL_MINEFIELD = (140, 60,  0,   255)   # brown
+COL_AGENT_A   = (30,  100, 200, 255)   # blue
+COL_AGENT_B   = (200, 60,  60,  255)   # red
+COL_AGENT_C   = (60,  180, 60,  255)   # green
+COL_TEXT      = (220, 220, 220, 255)
+COL_UNIT      = (255, 255, 255, 255)   # white dot for unit
+
+AGENT_COLOURS = {
+    AgentID.A: COL_AGENT_A,
+    AgentID.B: COL_AGENT_B,
+    AgentID.C: COL_AGENT_C,
+}
+AGENT_LABELS = {
+    AgentID.A: "A - Expert",
+    AgentID.B: "B - Intermediate",
+    AgentID.C: "C - Novice",
+}
+
+
+# ─────────────────────────────────────────────
+# GUI CLASS
+# ─────────────────────────────────────────────
+
+class BattlefieldGUI:
+
+    CELL_SIZE = 52          # pixels per cell
+    LOG_MAX   = 120         # max lines in move log
+
+    def __init__(self, board_path: str = "board.txt",
+                 results_path: str = "results.txt"):
+
+        # ── Parse & build state ──────────────────────────────────────────
+        rows, cols, max_rounds, grid_chars, starts = parse_board(board_path)
+        self.state   = build_initial_state(rows, cols, max_rounds, grid_chars, starts)
+        self.writer  = ResultsWriter(results_path)
+        self.loop    = GameLoop(self.state, self.writer, use_search=True)
+
+        self.rows    = rows
+        self.cols    = cols
+        self._running_auto = False
+        self._auto_thread  = None
+        self._log_lines: list[str] = []
+
+        # DrawList tag references built during setup
+        self._cell_tags : list[list[str]] = []   # [r][c] → drawlist rect tag
+        self._unit_tags : list[str]       = []   # flat list of unit dot tags
+        self._unit_draw_counter: int      = 0    # ensures unique tags across redraws
+
+    # ─────────────────────────────────────────
+    # BUILD UI
+    # ─────────────────────────────────────────
+
+    def build(self):
+        dpg.create_context()
+        dpg.create_viewport(title="Stochastic Battlefield", width=1080, height=680)
+        dpg.setup_dearpygui()
+
+        with dpg.font_registry():
+            pass  # use default font
+
+        board_px_w = self.cols * self.CELL_SIZE + 10
+        board_px_h = self.rows * self.CELL_SIZE + 10
+
+        with dpg.window(tag="main", label="Battlefield",
+                        width=1080, height=680,
+                        no_resize=True, no_move=True,
+                        no_title_bar=True):
+
+            with dpg.group(horizontal=True):
+
+                # ── Left: board ──────────────────────────────────────────
+                with dpg.child_window(tag="board_panel",
+                                      width=board_px_w + 4,
+                                      height=board_px_h + 30,
+                                      border=False):
+                    dpg.add_text("Board", color=COL_TEXT)
+                    with dpg.drawlist(width=board_px_w,
+                                      height=board_px_h,
+                                      tag="board_dl"):
+                        self._draw_board_initial()
+
+                # ── Right: controls + stats + log ────────────────────────
+                with dpg.child_window(tag="right_panel",
+                                      width=590, height=660,
+                                      border=False):
+
+                    # Round info
+                    dpg.add_text("Round: 1", tag="txt_round", color=COL_TEXT)
+                    dpg.add_separator()
+
+                    # Controls
+                    dpg.add_text("Controls", color=COL_TEXT)
+                    with dpg.group(horizontal=True):
+                        dpg.add_button(label="Next Move",
+                                       callback=self._cb_next,
+                                       width=110, height=32)
+                        dpg.add_button(label="Run",
+                                       tag="btn_run",
+                                       callback=self._cb_run,
+                                       width=80, height=32)
+                        dpg.add_button(label="Stop",
+                                       callback=self._cb_stop,
+                                       width=80, height=32)
+
+                    dpg.add_text("Speed (moves/sec):", color=COL_TEXT)
+                    dpg.add_slider_float(tag="slider_speed",
+                                         default_value=1.0,
+                                         min_value=0.2, max_value=5.0,
+                                         width=260)
+                    dpg.add_separator()
+
+                    # Legend
+                    dpg.add_text("Legend", color=COL_TEXT)
+                    with dpg.group(horizontal=True):
+                        _legend_box(COL_AGENT_A, "Agent A")
+                        _legend_box(COL_AGENT_B, "Agent B")
+                        _legend_box(COL_AGENT_C, "Agent C")
+                        _legend_box(COL_FORTRESS, "Fortress")
+                        _legend_box(COL_MINEFIELD, "Mine")
+                        _legend_box(COL_OBSTACLE, "Obstacle")
+                    dpg.add_separator()
+
+                    # Agent stats
+                    dpg.add_text("Agent Stats", color=COL_TEXT)
+                    with dpg.table(tag="agent_table",
+                                   header_row=True,
+                                   borders_innerH=True,
+                                   borders_outerH=True,
+                                   borders_outerV=True,
+                                   width=560):
+                        dpg.add_table_column(label="Agent",  width_fixed=True, init_width_or_weight=130)
+                        dpg.add_table_column(label="Score",  width_fixed=True, init_width_or_weight=70)
+                        dpg.add_table_column(label="Energy", width_fixed=True, init_width_or_weight=70)
+                        dpg.add_table_column(label="Cells",  width_fixed=True, init_width_or_weight=60)
+                        dpg.add_table_column(label="Units",  width_fixed=True, init_width_or_weight=60)
+                        dpg.add_table_column(label="Status", width_fixed=True, init_width_or_weight=100)
+
+                        for aid in AgentID:
+                            with dpg.table_row(tag=f"row_{aid.value}"):
+                                dpg.add_text(AGENT_LABELS[aid],
+                                             color=AGENT_COLOURS[aid],
+                                             tag=f"stat_name_{aid.value}")
+                                dpg.add_text("0",  tag=f"stat_score_{aid.value}")
+                                dpg.add_text("20", tag=f"stat_energy_{aid.value}")
+                                dpg.add_text("0",  tag=f"stat_cells_{aid.value}")
+                                dpg.add_text("0",  tag=f"stat_units_{aid.value}")
+                                dpg.add_text("Active", tag=f"stat_status_{aid.value}")
+
+                    dpg.add_separator()
+
+                    # Last move node stats
+                    dpg.add_text("Last Move Stats", color=COL_TEXT)
+                    dpg.add_text("-", tag="txt_node_stats", color=(180, 180, 180, 255),
+                                 wrap=560)
+                    dpg.add_separator()
+
+                    # Move log
+                    dpg.add_text("Move Log", color=COL_TEXT)
+                    with dpg.child_window(tag="log_win",
+                                          width=565, height=200,
+                                          border=True):
+                        dpg.add_text("Game start.", tag="txt_log",
+                                     color=(180, 180, 180, 255),
+                                     wrap=550)
+
+        dpg.set_primary_window("main", True)
+        self._refresh_stats()
+
+    # ─────────────────────────────────────────
+    # INITIAL BOARD DRAW
+    # ─────────────────────────────────────────
+
+    def _draw_board_initial(self):
+        cs  = self.CELL_SIZE
+        board = self.state.board
+
+        self._cell_tags = [[None]*self.cols for _ in range(self.rows)]
+
+        for r in range(self.rows):
+            for c in range(self.cols):
+                x0, y0 = c*cs + 2, r*cs + 2
+                x1, y1 = x0 + cs - 2, y0 + cs - 2
+                tag = f"cell_{r}_{c}"
+                col = self._cell_colour(r, c)
+                dpg.draw_rectangle(pmin=(x0, y0), pmax=(x1, y1),
+                                   color=(0,0,0,0), fill=col,
+                                   tag=tag, parent="board_dl")
+                self._cell_tags[r][c] = tag
+
+        # Draw coordinate labels (col numbers top, row numbers left)
+        for c in range(self.cols):
+            dpg.draw_text((c*cs + cs//2 - 4, 2),
+                          str(c), size=11,
+                          color=(120,120,120,200),
+                          parent="board_dl")
+        for r in range(self.rows):
+            dpg.draw_text((2, r*cs + cs//2 - 6),
+                          str(r), size=11,
+                          color=(120,120,120,200),
+                          parent="board_dl")
+
+        self._draw_units()
+
+    def _cell_colour(self, r: int, c: int) -> tuple:
+        board = self.state.board
+        cell  = board.get_cell(r, c)
+
+        if cell.cell_type == CellType.OBSTACLE:
+            return COL_OBSTACLE
+        if cell.cell_type == CellType.MINEFIELD and cell.owner is None:
+            return COL_MINEFIELD
+        if cell.owner is not None:
+            base = AGENT_COLOURS[cell.owner]
+            if cell.is_fortress:
+                # Blend agent colour with gold
+                return (
+                    (base[0] + COL_FORTRESS[0]) // 2,
+                    (base[1] + COL_FORTRESS[1]) // 2,
+                    (base[2] + COL_FORTRESS[2]) // 2,
+                    255
+                )
+            return base
+        if cell.cell_type == CellType.FORTRESS:
+            return COL_FORTRESS
+
+        return COL_EMPTY
+
+    def _draw_units(self):
+        """Draw white dots for each unit on the board."""
+        # Delete old unit dots
+        for tag in self._unit_tags:
+            if dpg.does_item_exist(tag):
+                dpg.delete_item(tag)
+        self._unit_tags.clear()
+
+        cs = self.CELL_SIZE
+
+        for aid in AgentID:
+            agent = self.state.get_agent(aid)
+            for unit in agent.units:
+                r, c = unit.row, unit.col
+                cx = c * cs + cs // 2
+                cy = r * cs + cs // 2
+                tag = f"unit_dot_{self._unit_draw_counter}"
+                self._unit_draw_counter += 1
+                dpg.draw_circle(center=(cx, cy), radius=8,
+                                color=(0,0,0,255),
+                                fill=COL_UNIT,
+                                tag=tag, parent="board_dl")
+                # Agent letter
+                ltag = f"unit_lbl_{self._unit_draw_counter}"
+                self._unit_draw_counter += 1
+                dpg.draw_text((cx - 4, cy - 7),
+                              aid.value, size=13,
+                              color=AGENT_COLOURS[aid],
+                              tag=ltag, parent="board_dl")
+                self._unit_tags += [tag, ltag]
+
+    # ─────────────────────────────────────────
+    # REFRESH
+    # ─────────────────────────────────────────
+
+    def _refresh_board(self):
+        """Repaint every cell and redraw units."""
+        for r in range(self.rows):
+            for c in range(self.cols):
+                tag = self._cell_tags[r][c]
+                if dpg.does_item_exist(tag):
+                    dpg.configure_item(tag, fill=self._cell_colour(r, c))
+        self._draw_units()
+
+    def _refresh_stats(self):
+        """Update the agent stats table and round label."""
+        state = self.state
+        dpg.set_value("txt_round",
+                      f"Round: {state.round_number} / {state.max_rounds}")
+
+        for aid in AgentID:
+            agent = state.get_agent(aid)
+            cells = state.board.count_owned(aid)
+            dpg.set_value(f"stat_score_{aid.value}",  str(agent.score))
+            dpg.set_value(f"stat_energy_{aid.value}", str(agent.energy))
+            dpg.set_value(f"stat_cells_{aid.value}",  str(cells))
+            dpg.set_value(f"stat_units_{aid.value}",  str(len(agent.units)))
+            status = "Eliminated" if agent.is_eliminated else "Active"
+            dpg.set_value(f"stat_status_{aid.value}", status)
+
+    def _refresh_node_stats(self, report):
+        """Show last move search stats."""
+        if report is None:
+            return
+        txt = (
+            f"{report.agent_id.value} | {report.action_label}\n"
+            f"Nodes: {report.nodes_explored:,}  "
+            f"Pruned: {report.nodes_pruned:,} ({report.pruning_pct:.1f}%)  "
+            f"Utility: {report.chosen_value:.3f}  "
+            f"Time: {report.elapsed_ms:.0f}ms"
+        )
+        dpg.set_value("txt_node_stats", txt)
+
+    def _add_log(self, text: str):
+        """Append a line to the move log panel."""
+        self._log_lines.append(text)
+        if len(self._log_lines) > self.LOG_MAX:
+            self._log_lines = self._log_lines[-self.LOG_MAX:]
+        dpg.set_value("txt_log", "\n".join(self._log_lines))
+
+    # ─────────────────────────────────────────
+    # STEP LOGIC
+    # ─────────────────────────────────────────
+
+    def _do_step(self):
+        """Advance one move and refresh UI."""
+        if self.loop.done:
+            self._add_log("Game over.")
+            return
+
+        still_running = self.loop.step()
+
+        # Grab what happened from the loop
+        if self.loop.last_event:
+            ev = self.loop.last_event
+            self._add_log(f"[ENV] {ev.event_tag}: {' '.join(ev.log)}")
+            self.loop.last_event = None
+
+        if self.loop.last_action_result:
+            for line in self.loop.last_action_result.log:
+                self._add_log(line)
+            self.loop.last_action_result = None
+
+        if self.loop.last_report:
+            self._refresh_node_stats(self.loop.last_report)
+            self.loop.last_report = None
+
+        self._refresh_board()
+        self._refresh_stats()
+
+        if not still_running or self.loop.done:
+            self._add_log("=== GAME OVER ===")
+            winner = self.state.winner()
+            if winner:
+                self._add_log(f"Winner: Agent {winner.value}!")
+            self._running_auto = False
+
+    # ─────────────────────────────────────────
+    # CALLBACKS
+    # ─────────────────────────────────────────
+
+    def _cb_next(self, sender, app_data):
+        if not self.loop.done:
+            self._do_step()
+
+    def _cb_run(self, sender, app_data):
+        if self._running_auto or self.loop.done:
+            return
+        self._running_auto = True
+        self._auto_thread  = threading.Thread(target=self._auto_run, daemon=True)
+        self._auto_thread.start()
+
+    def _cb_stop(self, sender, app_data):
+        self._running_auto = False
+
+    def _auto_run(self):
+        """Background thread: keep stepping at configured speed."""
+        while self._running_auto and not self.loop.done:
+            speed   = dpg.get_value("slider_speed")
+            delay   = 1.0 / max(speed, 0.1)
+            self._do_step()
+            time.sleep(delay)
+        self._running_auto = False
+
+    # ─────────────────────────────────────────
+    # LAUNCH
+    # ─────────────────────────────────────────
+
+    def run(self):
+        self.build()
+        dpg.show_viewport()
+        while dpg.is_dearpygui_running():
+            dpg.render_dearpygui_frame()
+        dpg.destroy_context()
+
+
+# ─────────────────────────────────────────────
+# HELPER
+# ─────────────────────────────────────────────
+
+def _legend_box(colour: tuple, label: str):
+    """Small coloured square + label for the legend."""
+    with dpg.group(horizontal=True):
+        dpg.add_color_button(default_value=colour,
+                             width=14, height=14,
+                             no_tooltip=True, no_border=True,
+                             enabled=False)
+        dpg.add_text(label, color=COL_TEXT)
+
+
+# ─────────────────────────────────────────────
+# ENTRY POINT
+# ─────────────────────────────────────────────
+
+if __name__ == "__main__":
+    import sys
+    board_path   = sys.argv[1] if len(sys.argv) > 1 else "board.txt"
+    results_path = sys.argv[2] if len(sys.argv) > 2 else "results.txt"
+    random.seed(42)
+    gui = BattlefieldGUI(board_path, results_path)
+    gui.run()
