@@ -5,43 +5,43 @@ ROUND 1 / 30
   [ENV] [reinforcement] Reinforcement: A (score=0) gets bonus unit 2 at (0,1) for 2 turns.
 
   >> A turn:
-Move 1 | Agent A (A) | Action: Move(0,1) + Move(2,0) + Move(0,2)
-  Expectiminimax nodes explored : 784
-  Nodes pruned (Alpha-Beta)     : 120 (13.3%)
-  Chosen action value (utility) : 5.7500
-  Time elapsed                  : 138.9 ms
+Move 1 | Agent A (A) | Action: Move(0,1) + Move(2,0) + Fortify(0,0)
+  Expectiminimax nodes explored : 2,408
+  Nodes pruned (Alpha-Beta)     : 74 (3.0%)
+  Chosen action value (utility) : 3.5000
+  Time elapsed                  : 408.4 ms
 
   A[unit0] Moves to (0,1) - captured empty cell.
   A[unit1] Moves to (2,0) - captured empty cell.
-  A[unit2] Moves to (0,2) - captured empty cell.
+  A[unit2] Fortifies (0,0) - defense now 2.
 
   >> B turn:
 Move 2 | Agent B (B) | Action: Move(0,8) + Move(2,9)
-  Expectiminimax nodes explored : 868
-  Nodes pruned (Alpha-Beta)     : 540 (38.4%)
-  Chosen action value (utility) : 2.0000
-  Time elapsed                  : 151.1 ms
+  Expectiminimax nodes explored : 118,671
+  Nodes pruned (Alpha-Beta)     : 1,176 (1.0%)
+  Chosen action value (utility) : 0.7500
+  Time elapsed                  : 19991.8 ms
 
   B[unit0] Moves to (0,8) - captured empty cell.
   B[unit1] Moves to (2,9) - captured empty cell.
 
   >> C turn:
 Move 3 | Agent C (C) | Action: Move(9,3) + Move(7,4)
-  Expectiminimax nodes explored : 30
-  Nodes pruned (Alpha-Beta)     : 0 (0.0%)
-  Chosen action value (utility) : -2.5000
-  Time elapsed                  : 8.1 ms
+  Expectiminimax nodes explored : 60
+  Nodes pruned (Alpha-Beta)     : 2 (3.2%)
+  Chosen action value (utility) : -4.0000
+  Time elapsed                  : 15.5 ms
 
   C[unit0] Moves to (9,3) - captured empty cell.
   C[unit1] Moves to (7,4) - captured empty cell.
   [SCORE]
-    A earns 5 pts this round -> total 5.
+    A earns 4 pts this round -> total 4.
     B earns 4 pts this round -> total 4.
     C earns 6 pts this round -> total 6.
   [EXPIRY] Bonus unit 2 of A expired and removed.
 
   Board after round 1:
-    AAA.....BB
+    AA......BB
     AX...F..XB
     A........B
     ...M..M...
@@ -55,39 +55,39 @@ Move 3 | Agent C (C) | Action: Move(9,3) + Move(7,4)
 ──────────────────────────────────────────────────
 ROUND 2 / 30
 ──────────────────────────────────────────────────
-  [ENV] [supply_drop] Supply Drop: (5,0) becomes a temp Fortress for 3 rounds.
+  [ENV] [supply_drop] Supply Drop: (4,9) becomes a temp Fortress for 3 rounds.
 
   >> A turn:
-Move 4 | Agent A (A) | Action: Fortify(0,0) + Move(3,0)
-  Expectiminimax nodes explored : 798
-  Nodes pruned (Alpha-Beta)     : 140 (14.9%)
-  Chosen action value (utility) : 0.2500
-  Time elapsed                  : 143.7 ms
+Move 4 | Agent A (A) | Action: Move(0,2) + Move(3,0)
+  Expectiminimax nodes explored : 1,988
+  Nodes pruned (Alpha-Beta)     : 57 (2.8%)
+  Chosen action value (utility) : 3.1250
+  Time elapsed                  : 376.6 ms
 
-  A[unit0] Fortifies (0,0) - defense now 2.
+  A[unit0] Moves to (0,2) - captured empty cell.
   A[unit1] Moves to (3,0) - captured empty cell.
 
   >> B turn:
 Move 5 | Agent B (B) | Action: Move(0,7) + Move(3,9)
-  Expectiminimax nodes explored : 868
-  Nodes pruned (Alpha-Beta)     : 540 (38.4%)
-  Chosen action value (utility) : -0.7500
-  Time elapsed                  : 125.4 ms
+  Expectiminimax nodes explored : 118,671
+  Nodes pruned (Alpha-Beta)     : 1,176 (1.0%)
+  Chosen action value (utility) : 2.5000
+  Time elapsed                  : 22280.5 ms
 
   B[unit0] Moves to (0,7) - captured empty cell.
   B[unit1] Moves to (3,9) - captured empty cell.
 
   >> C turn:
 Move 6 | Agent C (C) | Action: Move(8,3) + Move(6,4)
-  Expectiminimax nodes explored : 30
-  Nodes pruned (Alpha-Beta)     : 0 (0.0%)
-  Chosen action value (utility) : -1.5000
-  Time elapsed                  : 8.2 ms
+  Expectiminimax nodes explored : 60
+  Nodes pruned (Alpha-Beta)     : 2 (3.2%)
+  Chosen action value (utility) : -3.0000
+  Time elapsed                  : 8.7 ms
 
   C[unit0] Moves to (8,3) - captured empty cell.
   C[unit1] Moves to (6,4) - captured empty cell.
   [SCORE]
-    A earns 6 pts this round -> total 11.
+    A earns 6 pts this round -> total 10.
     B earns 6 pts this round -> total 10.
     C earns 8 pts this round -> total 14.
 
@@ -96,8 +96,8 @@ Move 6 | Agent C (C) | Action: Move(8,3) + Move(6,4)
     AX...F..XB
     A........B
     A..M..M..B
-    .F........
-    F.......F.
+    .F.......F
+    ........F.
     ...MC.M...
     ....C.....
     .X.CC...X.
@@ -109,46 +109,46 @@ ROUND 3 / 30
   [ENV] [supply_drop] Supply Drop: (3,1) becomes a temp Fortress for 3 rounds.
 
   >> A turn:
-Move 7 | Agent A (A) | Action: Fortify(0,0) + Move(3,1)
-  Expectiminimax nodes explored : 1,414
-  Nodes pruned (Alpha-Beta)     : 120 (7.8%)
-  Chosen action value (utility) : -0.3750
-  Time elapsed                  : 243.1 ms
+Move 7 | Agent A (A) | Action: Move(0,3) + Move(3,1)
+  Expectiminimax nodes explored : 3,612
+  Nodes pruned (Alpha-Beta)     : 72 (2.0%)
+  Chosen action value (utility) : 4.8750
+  Time elapsed                  : 1005.1 ms
 
-  A[unit0] Fortifies (0,0) - defense now 3.
+  A[unit0] Moves to (0,3) - captured empty cell.
   A[unit1] Captures unowned Fortress at (3,1).
 
   >> B turn:
-Move 8 | Agent B (B) | Action: Move(1,7) + Move(4,9)
-  Expectiminimax nodes explored : 868
-  Nodes pruned (Alpha-Beta)     : 540 (38.4%)
-  Chosen action value (utility) : -3.0000
-  Time elapsed                  : 129.6 ms
+Move 8 | Agent B (B) | Action: Move(0,6) + Move(4,9)
+  Expectiminimax nodes explored : 172,935
+  Nodes pruned (Alpha-Beta)     : 2,208 (1.3%)
+  Chosen action value (utility) : -1.7500
+  Time elapsed                  : 33382.0 ms
 
-  B[unit0] Moves to (1,7) - captured empty cell.
-  B[unit1] Moves to (4,9) - captured empty cell.
+  B[unit0] Moves to (0,6) - captured empty cell.
+  B[unit1] Captures unowned Fortress at (4,9).
 
   >> C turn:
 Move 9 | Agent C (C) | Action: Move(7,3) + Move(5,4)
-  Expectiminimax nodes explored : 30
-  Nodes pruned (Alpha-Beta)     : 0 (0.0%)
-  Chosen action value (utility) : 0.0000
-  Time elapsed                  : 4.6 ms
+  Expectiminimax nodes explored : 60
+  Nodes pruned (Alpha-Beta)     : 2 (3.2%)
+  Chosen action value (utility) : -2.0000
+  Time elapsed                  : 9.8 ms
 
   C[unit0] Moves to (7,3) - captured empty cell.
   C[unit1] Moves to (5,4) - captured empty cell.
   [SCORE]
-    A earns 9 pts this round -> total 20.
-    B earns 8 pts this round -> total 18.
+    A earns 10 pts this round -> total 20.
+    B earns 10 pts this round -> total 20.
     C earns 10 pts this round -> total 24.
 
   Board after round 3:
-    AAA....BBB
-    AX...F.BXB
+    AAAA..BBBB
+    AX...F..XB
     A........B
     AA.M..M..B
     .F.......B
-    F...C...F.
+    ....C...F.
     ...MC.M...
     ...CC.....
     .X.CC...X.
@@ -157,51 +157,51 @@ Move 9 | Agent C (C) | Action: Move(7,3) + Move(5,4)
 ──────────────────────────────────────────────────
 ROUND 4 / 30
 ──────────────────────────────────────────────────
-  [ENV] [reinforcement] Reinforcement: B (score=18) gets bonus unit 2 at (2,7) for 2 turns.
+  [ENV] [reinforcement] Reinforcement: A (score=20) gets bonus unit 2 at (1,3) for 2 turns.
 
   >> A turn:
-Move 10 | Agent A (A) | Action: Fortify(0,2) + Move(4,1)
-  Expectiminimax nodes explored : 1,610
-  Nodes pruned (Alpha-Beta)     : 140 (8.0%)
-  Chosen action value (utility) : -2.8750
-  Time elapsed                  : 296.9 ms
+Move 10 | Agent A (A) | Action: Move(1,3) + Move(4,1) + Move(2,3)
+  Expectiminimax nodes explored : 1,960
+  Nodes pruned (Alpha-Beta)     : 46 (2.3%)
+  Chosen action value (utility) : 1.1250
+  Time elapsed                  : 416.7 ms
 
-  A[unit0] Fortifies (0,2) - defense now 2.
+  A[unit0] Moves to (1,3) - captured empty cell.
   A[unit1] Captures unowned Fortress at (4,1).
+  A[unit2] Moves to (2,3) - captured empty cell.
 
   >> B turn:
-Move 11 | Agent B (B) | Action: Move(2,7) + Move(5,9) + Move(2,6)
-  Expectiminimax nodes explored : 2,254
-  Nodes pruned (Alpha-Beta)     : 480 (17.6%)
-  Chosen action value (utility) : -4.5000
-  Time elapsed                  : 348.8 ms
+Move 11 | Agent B (B) | Action: Move(1,6) + Move(5,9)
+  Expectiminimax nodes explored : 118,671
+  Nodes pruned (Alpha-Beta)     : 1,176 (1.0%)
+  Chosen action value (utility) : -1.8750
+  Time elapsed                  : 25263.6 ms
 
-  B[unit0] Moves to (2,7) - captured empty cell.
+  B[unit0] Moves to (1,6) - captured empty cell.
   B[unit1] Moves to (5,9) - captured empty cell.
-  B[unit2] Moves to (2,6) - captured empty cell.
 
   >> C turn:
 Move 12 | Agent C (C) | Action: Move(7,2) + Move(4,4)
-  Expectiminimax nodes explored : 30
-  Nodes pruned (Alpha-Beta)     : 0 (0.0%)
-  Chosen action value (utility) : 0.5000
-  Time elapsed                  : 8.3 ms
+  Expectiminimax nodes explored : 60
+  Nodes pruned (Alpha-Beta)     : 2 (3.2%)
+  Chosen action value (utility) : -4.0000
+  Time elapsed                  : 8.4 ms
 
   C[unit0] Moves to (7,2) - captured empty cell.
   C[unit1] Moves to (4,4) - captured empty cell.
   [SCORE]
-    A earns 12 pts this round -> total 32.
-    B earns 11 pts this round -> total 29.
+    A earns 15 pts this round -> total 35.
+    B earns 12 pts this round -> total 32.
     C earns 12 pts this round -> total 36.
-  [EXPIRY] Supply Drop expired: (5,0) reverts to Empty (was owned by nobody).
-  [EXPIRY] Bonus unit 2 of B expired and removed.
+  [EXPIRY] Supply Drop expired: (4,9) reverts to Empty (was owned by B).
+  [EXPIRY] Bonus unit 2 of A expired and removed.
 
   Board after round 4:
-    AAA....BBB
-    AX...F.BXB
-    A.....BB.B
+    AAAA..BBBB
+    AX.A.FB.XB
+    A..A.....B
     AA.M..M..B
-    .A..C....B
+    .A..C.....
     ....C...FB
     ...MC.M...
     ..CCC.....
@@ -211,49 +211,51 @@ Move 12 | Agent C (C) | Action: Move(7,2) + Move(4,4)
 ──────────────────────────────────────────────────
 ROUND 5 / 30
 ──────────────────────────────────────────────────
-  [ENV] [fog_of_war] Fog of War: all agents' observable range halved for this turn.
+  [ENV] [reinforcement] Reinforcement: B (score=32) gets bonus unit 2 at (2,6) for 2 turns.
 
   >> A turn:
-Move 13 | Agent A (A) | Action: Fortify(0,2) + Move(5,1)
-  Expectiminimax nodes explored : 812
-  Nodes pruned (Alpha-Beta)     : 160 (16.5%)
-  Chosen action value (utility) : -9.8750
-  Time elapsed                  : 139.1 ms
+Move 13 | Agent A (A) | Action: Move(1,2) + Move(5,1)
+  Expectiminimax nodes explored : 12,901
+  Nodes pruned (Alpha-Beta)     : 170 (1.3%)
+  Chosen action value (utility) : -3.5400
+  Time elapsed                  : 5234.3 ms
 
-  A[unit0] Fortifies (0,2) - defense now 3.
+  A[unit0] Moves to (1,2) - captured empty cell.
   A[unit1] Moves to (5,1) - captured empty cell.
 
   >> B turn:
-Move 14 | Agent B (B) | Action: Move(3,7) + Move(5,8)
-  Expectiminimax nodes explored : 1,246
-  Nodes pruned (Alpha-Beta)     : 480 (27.8%)
-  Chosen action value (utility) : -4.1250
-  Time elapsed                  : 176.9 ms
+Move 14 | Agent B (B) | Action: Move(1,5) + Move(5,8) + Move(2,7)
+  Expectiminimax nodes explored : 194,103
+  Nodes pruned (Alpha-Beta)     : 1,776 (0.9%)
+  Chosen action value (utility) : -9.7500
+  Time elapsed                  : 48614.7 ms
 
-  B[unit0] Moves to (3,7) - captured empty cell.
+  B[unit0] Captures unowned Fortress at (1,5).
   B[unit1] Captures unowned Fortress at (5,8).
+  B[unit2] Moves to (2,7) - captured empty cell.
 
   >> C turn:
 Move 15 | Agent C (C) | Action: Move(6,2) + Move(3,4)
-  Expectiminimax nodes explored : 30
-  Nodes pruned (Alpha-Beta)     : 0 (0.0%)
-  Chosen action value (utility) : 0.5000
-  Time elapsed                  : 7.6 ms
+  Expectiminimax nodes explored : 60
+  Nodes pruned (Alpha-Beta)     : 2 (3.2%)
+  Chosen action value (utility) : -6.5000
+  Time elapsed                  : 47.7 ms
 
   C[unit0] Moves to (6,2) - captured empty cell.
   C[unit1] Moves to (3,4) - captured empty cell.
   [SCORE]
-    A earns 13 pts this round -> total 45.
-    B earns 15 pts this round -> total 44.
+    A earns 17 pts this round -> total 52.
+    B earns 16 pts this round -> total 48.
     C earns 14 pts this round -> total 50.
   [EXPIRY] Supply Drop expired: (3,1) reverts to Empty (was owned by A).
+  [EXPIRY] Bonus unit 2 of B expired and removed.
 
   Board after round 5:
-    AAA....BBB
-    AX...F.BXB
-    A.....BB.B
-    A..MC.MB.B
-    .A..C....B
+    AAAA..BBBB
+    AXAA.BB.XB
+    A..A...B.B
+    A..MC.M..B
+    .A..C.....
     .A..C...BB
     ..CMC.M...
     ..CCC.....
@@ -263,52 +265,50 @@ Move 15 | Agent C (C) | Action: Move(6,2) + Move(3,4)
 ──────────────────────────────────────────────────
 ROUND 6 / 30
 ──────────────────────────────────────────────────
-  [ENV] [reinforcement] Reinforcement: B (score=44) gets bonus unit 2 at (4,7) for 2 turns.
+  [ENV] [fog_of_war] Fog of War: all agents' observable range halved for this turn.
 
   >> A turn:
-Move 16 | Agent A (A) | Action: Move(0,0) + Move(5,2)
-  Expectiminimax nodes explored : 1,372
-  Nodes pruned (Alpha-Beta)     : 60 (4.2%)
-  Chosen action value (utility) : -28.0650
-  Time elapsed                  : 266.2 ms
+Move 16 | Agent A (A) | Action: Move(2,2) + Move(6,1)
+  Expectiminimax nodes explored : 102,760
+  Nodes pruned (Alpha-Beta)     : 281 (0.3%)
+  Chosen action value (utility) : -12.4279
+  Time elapsed                  : 30085.1 ms
 
-  A[unit0] Moves to own cell (0,0).
-  A[unit1] Moves to (5,2) - captured empty cell.
+  A[unit0] Moves to (2,2) - captured empty cell.
+  A[unit1] Moves to (6,1) - captured empty cell.
 
   >> B turn:
-Move 17 | Agent B (B) | Action: Move(4,7) + Move(4,8) + Move(4,6)
-  Expectiminimax nodes explored : 1,246
-  Nodes pruned (Alpha-Beta)     : 480 (27.8%)
-  Chosen action value (utility) : 2.2000
-  Time elapsed                  : 212.0 ms
+Move 17 | Agent B (B) | Action: Move(0,5) + Move(6,8)
+  Expectiminimax nodes explored : 269,997
+  Nodes pruned (Alpha-Beta)     : 1,230 (0.5%)
+  Chosen action value (utility) : -6.7425
+  Time elapsed                  : 57856.3 ms
 
-  B[unit0] Moves to (4,7) - captured empty cell.
-  B[unit1] Moves to (4,8) - captured empty cell.
-  B[unit2] Moves to (4,6) - captured empty cell.
+  B[unit0] Moves to (0,5) - captured empty cell.
+  B[unit1] Moves to (6,8) - captured empty cell.
 
   >> C turn:
-Move 18 | Agent C (C) | Action: Attack(5,2) + Move(2,4)
-  Expectiminimax nodes explored : 30
-  Nodes pruned (Alpha-Beta)     : 0 (0.0%)
-  Chosen action value (utility) : 0.0652
-  Time elapsed                  : 3.4 ms
+Move 18 | Agent C (C) | Action: Attack(6,1) + Move(2,4)
+  Expectiminimax nodes explored : 69
+  Nodes pruned (Alpha-Beta)     : 1 (1.4%)
+  Chosen action value (utility) : -9.0000
+  Time elapsed                  : 20.4 ms
 
-    Combat FAIL: C attack on (5,2) repelled.
+    Combat FAIL (energy penalty): C loses 1 extra energy -> 8 left.
   C[unit1] Moves to (2,4) - captured empty cell.
   [SCORE]
-    A earns 11 pts this round -> total 56.
-    B earns 18 pts this round -> total 62.
+    A earns 16 pts this round -> total 68.
+    B earns 18 pts this round -> total 66.
     C earns 15 pts this round -> total 65.
-  [EXPIRY] Bonus unit 2 of B expired and removed.
 
   Board after round 6:
-    AAA....BBB
-    AX...F.BXB
-    A...C.BB.B
-    A..MC.MB.B
-    .A..C.BBBB
-    .AA.C...BB
-    ..CMC.M...
+    AAAA.BBBBB
+    AXAA.BB.XB
+    A.AAC..B.B
+    A..MC.M..B
+    .A..C.....
+    .A..C...BB
+    .ACMC.M.B.
     ..CCC.....
     .X.CC...X.
     ...CC.....
@@ -316,176 +316,184 @@ Move 18 | Agent C (C) | Action: Attack(5,2) + Move(2,4)
 ──────────────────────────────────────────────────
 ROUND 7 / 30
 ──────────────────────────────────────────────────
-  [ENV] [earthquake] Earthquake: (0,8) owned by B lost its last defense - reverts to Empty.
+  [ENV] [earthquake] Earthquake: (0,1) owned by A lost its last defense - reverts to Empty.
 
   >> A turn:
-Move 19 | Agent A (A) | Action: Fortify(0,1) + Attack(6,2)
-  Expectiminimax nodes explored : 4,718
-  Nodes pruned (Alpha-Beta)     : 120 (2.5%)
-  Chosen action value (utility) : -35.4148
-  Time elapsed                  : 892.7 ms
+Move 19 | Agent A (A) | Action: Move(2,1) + Move(7,1)
+  Expectiminimax nodes explored : 666,925
+  Nodes pruned (Alpha-Beta)     : 3,955 (0.6%)
+  Chosen action value (utility) : -15.9270
+  Time elapsed                  : 192952.7 ms
 
-  A[unit0] Fortifies (0,1) - defense now 2.
-    Combat CRITICAL: (6,2) defense -> 0.
-    CAPTURED (6,2) from C by A!
-    Critical bonus: +2 score to A -> 58.
+  A[unit0] Moves to (2,1) - captured empty cell.
+  A[unit1] Moves to (7,1) - captured empty cell.
 
   >> B turn:
-Move 20 | Agent B (B) | Action: Move(5,7) + Move(3,8)
-  Expectiminimax nodes explored : 868
-  Nodes pruned (Alpha-Beta)     : 540 (38.4%)
-  Chosen action value (utility) : 5.8250
-  Time elapsed                  : 187.3 ms
+Move 20 | Agent B (B) | Action: Move(0,4) + Move(7,8)
+  Expectiminimax nodes explored : 204,477
+  Nodes pruned (Alpha-Beta)     : 1,230 (0.6%)
+  Chosen action value (utility) : -3.2583
+  Time elapsed                  : 41210.4 ms
 
-  B[unit0] Moves to (5,7) - captured empty cell.
-  B[unit1] Moves to (3,8) - captured empty cell.
+  B[unit0] Moves to (0,4) - captured empty cell.
+  B[unit1] Moves to (7,8) - captured empty cell.
 
   >> C turn:
-Move 21 | Agent C (C) | Action: Attack(5,2) + Move(1,4)
-  Expectiminimax nodes explored : 30
-  Nodes pruned (Alpha-Beta)     : 0 (0.0%)
-  Chosen action value (utility) : -1.4348
-  Time elapsed                  : 3.3 ms
+Move 21 | Agent C (C) | Action: Attack(6,1) + Attack(2,3)
+  Expectiminimax nodes explored : 60
+  Nodes pruned (Alpha-Beta)     : 2 (3.2%)
+  Chosen action value (utility) : -11.4348
+  Time elapsed                  : 33.0 ms
 
-    Combat FAIL (energy penalty): C loses 1 extra energy -> 6 left.
-  C[unit1] Moves to (1,4) - captured empty cell.
+    Combat FAIL (energy penalty): C loses 1 extra energy -> 5 left.
+    Combat FAIL: C attack on (2,3) repelled.
   [SCORE]
-    A earns 12 pts this round -> total 70.
-    B earns 19 pts this round -> total 81.
+    A earns 17 pts this round -> total 85.
+    B earns 20 pts this round -> total 86.
     C earns 15 pts this round -> total 80.
 
   Board after round 7:
-    AAA....B.B
-    AX..CF.BXB
-    A...C.BB.B
-    A..MC.MBBB
-    .A..C.BBBB
-    .AA.C..BBB
-    ..AMC.M...
-    ..CCC.....
+    A.AABBBBBB
+    AXAA.BB.XB
+    AAAAC..B.B
+    A..MC.M..B
+    .A..C.....
+    .A..C...BB
+    .ACMC.M.B.
+    .ACCC...B.
     .X.CC...X.
     ...CC.....
 
 ──────────────────────────────────────────────────
 ROUND 8 / 30
 ──────────────────────────────────────────────────
-  [ENV] [fog_of_war] Fog of War: all agents' observable range halved for this turn.
+  [ENV] [reinforcement] Reinforcement: C (score=80) gets bonus unit 2 at (5,2) for 2 turns.
 
   >> A turn:
-Move 22 | Agent A (A) | Action: Fortify(1,0) + Move(5,3)
-  Expectiminimax nodes explored : 1,358
-  Nodes pruned (Alpha-Beta)     : 120 (8.1%)
-  Chosen action value (utility) : -40.9200
-  Time elapsed                  : 345.5 ms
+Move 22 | Agent A (A) | Action: Move(3,1) + Move(7,0)
+  Expectiminimax nodes explored : 460,068
+  Nodes pruned (Alpha-Beta)     : 8,375 (1.8%)
+  Chosen action value (utility) : -18.6413
+  Time elapsed                  : 122979.0 ms
 
-  A[unit0] Fortifies (1,0) - defense now 2.
-  A[unit1] Moves to (5,3) - captured empty cell.
+  A[unit0] Moves to (3,1) - captured empty cell.
+  A[unit1] Moves to (7,0) - captured empty cell.
 
   >> B turn:
-Move 23 | Agent B (B) | Action: Move(6,7) + Move(2,8)
-  Expectiminimax nodes explored : 868
-  Nodes pruned (Alpha-Beta)     : 540 (38.4%)
-  Chosen action value (utility) : 12.0750
-  Time elapsed                  : 145.8 ms
+Move 23 | Agent B (B) | Action: Attack(0,3) + Move(7,9)
+  Expectiminimax nodes explored : 221,543
+  Nodes pruned (Alpha-Beta)     : 244 (0.1%)
+  Chosen action value (utility) : 1.0165
+  Time elapsed                  : 43782.6 ms
 
-  B[unit0] Moves to (6,7) - captured empty cell.
-  B[unit1] Moves to (2,8) - captured empty cell.
+    Combat PARTIAL: (0,3) becomes neutral (was A).
+  B[unit1] Moves to (7,9) - captured empty cell.
 
   >> C turn:
-Move 24 | Agent C (C) | Action: Attack(5,2) + Move(0,4)
-  Expectiminimax nodes explored : 30
-  Nodes pruned (Alpha-Beta)     : 0 (0.0%)
-  Chosen action value (utility) : -2.9348
-  Time elapsed                  : 8.4 ms
+Move 24 | Agent C (C) | Action: Attack(6,1) + Attack(2,3) + Attack(5,1)
+  Expectiminimax nodes explored : 69
+  Nodes pruned (Alpha-Beta)     : 1 (1.4%)
+  Chosen action value (utility) : -15.8043
+  Time elapsed                  : 8.2 ms
 
-    Combat FAIL (energy penalty): C loses 1 extra energy -> 3 left.
-  C[unit1] Moves to (0,4) - captured empty cell.
+    Combat FULL: (6,1) defense -> 0.
+    CAPTURED (6,1) from A by C!
+    Combat FULL: (2,3) defense -> 0.
+    CAPTURED (2,3) from A by C!
+    Combat PARTIAL: (5,1) becomes neutral (was A).
   [SCORE]
-    A earns 13 pts this round -> total 83.
-    B earns 21 pts this round -> total 102.
-    C earns 16 pts this round -> total 96.
+    A earns 15 pts this round -> total 100.
+    B earns 21 pts this round -> total 107.
+    C earns 17 pts this round -> total 97.
+  [EXPIRY] Bonus unit 2 of C expired and removed.
 
   Board after round 8:
-    AAA.C..B.B
-    AX..CF.BXB
-    A...C.BBBB
-    A..MC.MBBB
-    .A..C.BBBB
-    .AAAC..BBB
-    ..AMC.MB..
-    ..CCC.....
+    A.A.BBBBBB
+    AXAA.BB.XB
+    AAACC..B.B
+    AA.MC.M..B
+    .A..C.....
+    ....C...BB
+    .CCMC.M.B.
+    AACCC...BB
     .X.CC...X.
     ...CC.....
 
 ──────────────────────────────────────────────────
 ROUND 9 / 30
 ──────────────────────────────────────────────────
-  [ENV] [supply_drop] Supply Drop: (7,5) becomes a temp Fortress for 3 rounds.
+  [ENV] [earthquake] Earthquake: (2,3) owned by C lost its last defense - reverts to Empty.
 
   >> A turn:
-Move 25 | Agent A (A) | Action: Fortify(0,1) + Attack(5,4)
-  Expectiminimax nodes explored : 5,803
-  Nodes pruned (Alpha-Beta)     : 140 (2.4%)
-  Chosen action value (utility) : -47.9455
-  Time elapsed                  : 1146.0 ms
+Move 25 | Agent A (A) | Action: Move(3,2) + Move(8,0)
+  Expectiminimax nodes explored : 721
+  Nodes pruned (Alpha-Beta)     : 10 (1.4%)
+  Chosen action value (utility) : -25.8750
+  Time elapsed                  : 171.8 ms
 
-  A[unit0] Fortifies (0,1) - defense now 3.
-    Combat CRITICAL: (5,4) defense -> 0.
-    CAPTURED (5,4) from C by A!
-    Critical bonus: +2 score to A -> 85.
+  A[unit0] Moves to (3,2) - captured empty cell.
+  A[unit1] Moves to (8,0) - captured empty cell.
 
   >> B turn:
-Move 26 | Agent B (B) | Action: Move(7,7) + Move(2,7)
-  Expectiminimax nodes explored : 1,246
-  Nodes pruned (Alpha-Beta)     : 480 (27.8%)
-  Chosen action value (utility) : 19.4750
-  Time elapsed                  : 190.6 ms
+Move 26 | Agent B (B) | Action: Move(1,4) + Move(8,9)
+  Expectiminimax nodes explored : 17,199
+  Nodes pruned (Alpha-Beta)     : 876 (4.8%)
+  Chosen action value (utility) : 11.6350
+  Time elapsed                  : 3757.0 ms
 
-  B[unit0] Moves to (7,7) - captured empty cell.
-  B[unit1] Moves to own cell (2,7).
+  B[unit0] Moves to (1,4) - captured empty cell.
+  B[unit1] Moves to (8,9) - captured empty cell.
 
   >> C turn:
-Move 27 | Agent C (C) | Action: Attack(5,2) + Move(0,3)
-  Expectiminimax nodes explored : 30
+Move 27 | Agent C (C) | Action: Move(5,2) + Attack(1,4)
+  Expectiminimax nodes explored : 42
   Nodes pruned (Alpha-Beta)     : 0 (0.0%)
-  Chosen action value (utility) : -6.1522
-  Time elapsed                  : 4.2 ms
+  Chosen action value (utility) : -16.5652
+  Time elapsed                  : 19.6 ms
 
-    Combat CRITICAL: (5,2) defense -> 0.
-    CAPTURED (5,2) from A by C!
-    Critical bonus: +2 score to C -> 98.
-  C[unit1] Moves to (0,3) - captured empty cell.
+  C[unit0] Moves to (5,2) - captured empty cell.
+  C[unit1] has no energy - Wait forced.
   [SCORE]
-    A earns 13 pts this round -> total 98.
-    B earns 22 pts this round -> total 124.
-    C earns 17 pts this round -> total 115.
+    A earns 17 pts this round -> total 117.
+    B earns 23 pts this round -> total 130.
+    C earns 17 pts this round -> total 114.
 
   Board after round 9:
-    AAACC..B.B
-    AX..CF.BXB
-    A...C.BBBB
-    A..MC.MBBB
-    .A..C.BBBB
-    .ACAA..BBB
-    ..AMC.MB..
-    ..CCCF.B..
-    .X.CC...X.
+    A.A.BBBBBB
+    AXAABBB.XB
+    AAA.C..B.B
+    AAAMC.M..B
+    .A..C.....
+    ..C.C...BB
+    .CCMC.M.B.
+    AACCC...BB
+    AX.CC...XB
     ...CC.....
 
 ──────────────────────────────────────────────────
 ROUND 10 / 30
 ──────────────────────────────────────────────────
-  [ENV] [supply_drop] Supply Drop: (9,0) becomes a temp Fortress for 3 rounds.
+  [ENV] [fog_of_war] Fog of War: all agents' observable range halved for this turn.
 
   >> A turn:
-Move 28 | Agent A (A) | Action: Move(1,0) + Attack(5,2)
-  Expectiminimax nodes explored : 70
+Move 28 | Agent A (A) | Action: Wait + Wait
+  Expectiminimax nodes explored : 35
   Nodes pruned (Alpha-Beta)     : 0 (0.0%)
-  Chosen action value (utility) : -52.8750
-  Time elapsed                  : 24.3 ms
+  Chosen action value (utility) : -27.8750
+  Time elapsed                  : 41.8 ms
 
-  A[unit0] Moves to own cell (1,0).
-  A[unit1] has no energy - Wait forced.
+  A[unit0] Waits. Energy now 0.
+  A[unit1] Waits. Energy now 0.
+
+  >> B turn:
+Move 29 | Agent B (B) | Action: Attack(2,4) + Move(9,9)
+  Expectiminimax nodes explored : 21
+  Nodes pruned (Alpha-Beta)     : 0 (0.0%)
+  Chosen action value (utility) : 17.6350
+  Time elapsed                  : 4.7 ms
+
+    Combat FAIL (energy penalty): B loses 1 extra energy -> 0 left.
+  B[unit1] has no energy - Wait forced.
 
 ==================================================
 GAME OVER
@@ -494,9 +502,9 @@ GAME OVER
 =================================================================
 FINAL RESULTS
 =================================================================
-  Agent A (Expert       ): score=   98  energy= 0  cells= 11  [active]
-  Agent B (Intermediate ): score=  124  energy= 0  cells= 20  [active]
-  Agent C (Novice       ): score=  115  energy= 0  cells= 15  [active]
+  Agent A (Expert       ): score=  117  energy= 0  cells= 15  [active]
+  Agent B (Intermediate ): score=  130  energy= 0  cells= 19  [active]
+  Agent C (Novice       ): score=  114  energy= 0  cells= 15  [active]
 
   WINNER: Agent B (Intermediate)
 =================================================================
@@ -506,7 +514,7 @@ GAME SUMMARY - Search Statistics
 =================================================================
 Agent                 Moves      Nodes     Pruned   Efficiency
 -----------------------------------------------------------------
-A (Expert)               10     18,739      1,120         5.6%
-B (Intermediate)          9     10,332      4,620        30.9%
-C (Novice)                9        270          0         0.0%
+A (Expert)               10  1,253,378     13,040         1.0%
+B (Intermediate)         10  1,436,288     11,092         0.8%
+C (Novice)                9        540         14         2.5%
 =================================================================

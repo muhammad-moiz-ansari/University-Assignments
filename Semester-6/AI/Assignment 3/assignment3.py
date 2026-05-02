@@ -541,7 +541,49 @@ MINEFIELD_PROBS: dict[str, float] = {tag: p for tag, p in MINEFIELD_OUTCOMES}
 ─────────────────────────────────────────────
 """
 
-def get_legal_actions(state: GameState, agent_id: AgentID) -> list[list[Action]]:
+def _score_action(act: Action, state: GameState) -> int:
+    score = 0
+    board = state.board
+    if act.action_type == ActionType.ATTACK:
+        cell = board.get_cell(act.target_row, act.target_col)
+        score += 100 + (10 if cell.is_fortress else 0) - cell.defense * 5
+    elif act.action_type == ActionType.MOVE:
+        cell = board.get_cell(act.target_row, act.target_col)
+        if cell.owner != act.agent_id:
+            score += 50
+            if cell.cell_type == CellType.FORTRESS: score += 30
+            elif cell.cell_type == CellType.MINEFIELD: score -= 40
+        else:
+            score += 10
+    elif act.action_type == ActionType.FORTIFY:
+        score += 30
+    return score
+
+def _score_combo(combo: list[Action], state: GameState) -> int:
+    score = 0
+    board = state.board
+    for act in combo:
+        if act.action_type == ActionType.ATTACK:
+            cell = board.get_cell(act.target_row, act.target_col)
+            score += 100 + (10 if cell.is_fortress else 0) - cell.defense * 5
+        elif act.action_type == ActionType.MOVE:
+            cell = board.get_cell(act.target_row, act.target_col)
+            if cell.owner != act.agent_id:
+                if cell.cell_type == CellType.EMPTY:
+                    score += 50
+                elif cell.cell_type == CellType.FORTRESS:
+                    score += 80
+                elif cell.cell_type == CellType.MINEFIELD:
+                    score += 10
+                else:
+                    score += 40
+            else:
+                score += 20
+        elif act.action_type == ActionType.FORTIFY:
+            score += 30
+    return score
+
+def get_legal_actions(state: GameState, agent_id: AgentID, depth: int = 7) -> list[list[Action]]:
     """
     Returns a list of action COMBINATIONS for the agent this turn.
     Each element is a list of Actions (one per active unit).
@@ -557,10 +599,14 @@ def get_legal_actions(state: GameState, agent_id: AgentID) -> list[list[Action]]
     # Cross product: combine one action per unit
     combos = _cross_product(per_unit_actions)
     
-    # LIMIT to top 10 actions to prevent combinatorial explosion in Expectiminimax
-    # Since actions are pre-sorted by priority, the first combinations are generally the best.
-    if len(combos) > 10:
-        combos = combos[:10]
+    # Sort combos by heuristic score to explore stronger moves first
+    combos.sort(key=lambda c: _score_combo(c, state), reverse=True)
+    
+    # LIMIT combos dynamically based on depth! (Late Move Reduction)
+    # The deeper we go in the tree, the fewer combinations we consider.
+    combo_limit = max(1, (depth // 2) + 1)
+    if len(combos) > combo_limit:
+        combos = combos[:combo_limit]
         
     return combos
  
@@ -603,10 +649,14 @@ def _get_unit_actions(state: GameState, agent: AgentState, unit: Unit) -> list[A
         if cell.owner == aid and cell.defense < 3:
             fortifies.append(Action(ActionType.FORTIFY, unit.unit_id, aid, nr, nc))
 
-    # Priority sort: Attacks > Moves to unowned > Fortifies > Moves to owned > Wait
     actions = attacks + moves_unowned + fortifies + moves_owned + [wait_act]
     
-    return actions
+    # Score individual actions
+    actions.sort(key=lambda a: _score_action(a, state), reverse=True)
+    
+    # Prune obviously bad actions per unit! Only keep the top 2 actions.
+    # This exponentially reduces combinations in the cross product.
+    return actions[:2]
  
  
 def _cross_product(per_unit: list[list[Action]]) -> list[list[Action]]:
@@ -1314,7 +1364,7 @@ ALL_BRANCHES     = list(OUTCOME_PROBS.keys())                  # all 6 collapsed
 AGENT_CONFIGS: dict[AgentID, AgentConfig] = {
     AgentID.A: AgentConfig(
         agent_id          = AgentID.A,
-        max_depth         = 3,
+        max_depth         = 7,
         obs_radius        = -1,
         chance_branches   = ALL_BRANCHES,
         eval_factors      = 5,
@@ -1322,7 +1372,7 @@ AGENT_CONFIGS: dict[AgentID, AgentConfig] = {
     ),
     AgentID.B: AgentConfig(
         agent_id          = AgentID.B,
-        max_depth         = 2,
+        max_depth         = 5,
         obs_radius        = 5,
         chance_branches   = ALL_BRANCHES,
         eval_factors      = 3,
@@ -1330,7 +1380,7 @@ AGENT_CONFIGS: dict[AgentID, AgentConfig] = {
     ),
     AgentID.C: AgentConfig(
         agent_id          = AgentID.C,
-        max_depth         = 1,
+        max_depth         = 3,
         obs_radius        = 3,
         chance_branches   = NOVICE_BRANCHES,
         eval_factors      = 1,
@@ -1560,9 +1610,9 @@ def expectiminimax(
     # ── MAX node (root agent's turn) ───────────────────────────────────────
     if is_max:
         best_val = -math.inf
-        actions_list = get_legal_actions(state, root_agent)
+        actions_list = get_legal_actions(state, root_agent, depth)
  
-        for actions in actions_list:
+        for i, actions in enumerate(actions_list):
             # After agent acts, go to CHANCE node before opponents move
             chance_val = _chance_node(
                 state, root_agent, actions,
@@ -1576,7 +1626,7 @@ def expectiminimax(
                 best_val = chance_val
             alpha = max(alpha, best_val)
             if beta <= alpha:
-                stats.nodes_pruned += len(actions_list)  # approximate remaining
+                stats.nodes_pruned += len(actions_list) - i - 1
                 break
  
         if config.use_transposition:
@@ -1586,9 +1636,9 @@ def expectiminimax(
     # ── MIN node (opponent's turn) ─────────────────────────────────────────
     else:
         worst_val = math.inf
-        actions_list = get_legal_actions(state, agent_id)
+        actions_list = get_legal_actions(state, agent_id, depth)
  
-        for actions in actions_list:
+        for i, actions in enumerate(actions_list):
             next_agent = _next_agent(state, agent_id)
             # Determine if next node is MAX or MIN
             next_is_max = (next_agent == root_agent)
@@ -1606,7 +1656,7 @@ def expectiminimax(
                 worst_val = child_val
             beta = min(beta, worst_val)
             if beta <= alpha:
-                stats.nodes_pruned += len(actions_list)
+                stats.nodes_pruned += len(actions_list) - i - 1
                 break
  
         if config.use_transposition:
@@ -1736,14 +1786,15 @@ def choose_best_action(
     if config.use_transposition:
         _expert_tt.clear()
  
-    actions_list = get_legal_actions(state, agent_id)
+    # Get legal actions dynamically restricted by max_depth
+    actions_list = get_legal_actions(state, agent_id, config.max_depth)
  
     best_val     = -math.inf
     best_actions = actions_list[0] if actions_list else []
     alpha        = -math.inf
     beta         = math.inf
 
-    for actions in actions_list:
+    for i, actions in enumerate(actions_list):
         # Each top-level action goes through a chance node first
         chance_val = _chance_node(
             state        = state,
@@ -1764,7 +1815,7 @@ def choose_best_action(
         
         alpha = max(alpha, best_val)
         if beta <= alpha:
-            stats.nodes_pruned += len(actions_list) - actions_list.index(actions) - 1
+            stats.nodes_pruned += len(actions_list) - i - 1
             break
 
     action_label = _actions_label(best_actions)
@@ -2273,6 +2324,7 @@ class BattlefieldGUI:
         self._cell_tags : list[list[str]] = []   # [r][c] → drawlist rect tag
         self._unit_tags : list[str]       = []   # flat list of unit dot tags
         self._unit_draw_counter: int      = 0    # ensures unique tags across redraws
+        self._step_lock = threading.Lock()       # prevents concurrent steps
 
     # ─────────────────────────────────────────
     # BUILD UI
@@ -2544,32 +2596,41 @@ class BattlefieldGUI:
 
     def _do_step(self):
         """Advance one move and refresh UI."""
-        if getattr(self, '_game_over_handled', False) or self.loop.done:
-            self._add_log("Game over.")
-            return
+        if not self._step_lock.acquire(blocking=False):
+            return  # Prevent concurrent steps from GUI and background thread
 
-        still_running = self.loop.step()
+        try:
+            if getattr(self, '_game_over_handled', False) or self.loop.done:
+                # Need to use mutex if we update GUI
+                with dpg.mutex():
+                    self._add_log("Game over.")
+                return
 
-        # Grab what happened from the loop
-        if self.loop.last_event:
-            ev = self.loop.last_event
-            self._add_log(f"[ENV] {ev.event_tag}: {' '.join(ev.log)}")
-            self.loop.last_event = None
+            still_running = self.loop.step()
 
-        if self.loop.last_action_result:
-            for line in self.loop.last_action_result.log:
-                self._add_log(line)
-            self.loop.last_action_result = None
+            # Grab what happened from the loop and update UI safely
+            with dpg.mutex():
+                if self.loop.last_event:
+                    ev = self.loop.last_event
+                    self._add_log(f"[ENV] {ev.event_tag}: {' '.join(ev.log)}")
+                    self.loop.last_event = None
 
-        if self.loop.last_report:
-            self._refresh_node_stats(self.loop.last_report)
-            self.loop.last_report = None
+                if self.loop.last_action_result:
+                    for line in self.loop.last_action_result.log:
+                        self._add_log(line)
+                    self.loop.last_action_result = None
 
-        self._refresh_board()
-        self._refresh_stats()
+                if self.loop.last_report:
+                    self._refresh_node_stats(self.loop.last_report)
+                    self.loop.last_report = None
 
-        if not still_running or self.loop.done:
-            self._ui_game_over()
+                self._refresh_board()
+                self._refresh_stats()
+
+                if not still_running or self.loop.done:
+                    self._ui_game_over()
+        finally:
+            self._step_lock.release()
 
     def _ui_game_over(self):
         if getattr(self, '_game_over_handled', False):
@@ -2605,7 +2666,7 @@ class BattlefieldGUI:
     def _cb_run(self, sender, app_data):
         if self._running_auto or self.loop.done or getattr(self, '_game_over_handled', False):
             return
-        if hasattr(self, '_auto_thread') and self._auto_thread.is_alive():
+        if getattr(self, '_auto_thread', None) is not None and self._auto_thread.is_alive():
             return
         self._running_auto = True
         self._auto_thread  = threading.Thread(target=self._auto_run, daemon=True)
