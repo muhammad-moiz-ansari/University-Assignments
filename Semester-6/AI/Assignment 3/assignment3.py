@@ -5,6 +5,8 @@ import copy
 import random
 import math
 import time
+import os
+import sys
 
 """
 1. Game State
@@ -1769,7 +1771,212 @@ def print_summary_table(reports: list[MoveReport]):
         print(f"{label:<12} {len(agent_reports):>6} {total_nodes:>10,} {total_pruned:>10,} {eff:>11.1f}%")
  
     print("="*65)
+
+
+
+"""
+5. I/O + Game Loop
+========================
+"""
  
+ 
+# ─────────────────────────────────────────────
+# 1. BOARD.TXT PARSER
+# ─────────────────────────────────────────────
+ 
+def parse_board(filepath: str) -> tuple[int, int, int, list[list[str]], dict]:
+    """
+    Expected format:
+        N M R
+        <N lines of M characters>
+        A_row A_col
+        B_row B_col
+        C_row C_col
+ 
+    Returns:
+        (rows, cols, max_rounds, grid_chars, start_positions)
+        start_positions: {AgentID: (row, col)}
+    """
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(f"board.txt not found at: {filepath}")
+ 
+    with open(filepath, 'r') as f:
+        lines = [l.rstrip('\n') for l in f.readlines()]
+ 
+    # Filter blank lines
+    lines = [l for l in lines if l.strip()]
+ 
+    if len(lines) < 5:
+        raise ValueError(
+            f"board.txt too short — expected at least 5 lines, got {len(lines)}"
+        )
+ 
+    # Line 1: N M R
+    try:
+        parts = lines[0].split()
+        rows, cols, max_rounds = int(parts[0]), int(parts[1]), int(parts[2])
+    except (IndexError, ValueError):
+        raise ValueError(f"Line 1 must be 'N M R' (integers), got: '{lines[0]}'")
+ 
+    # Lines 2..N+1: the grid
+    valid_chars = set('.XFM')
+    grid_chars = []
+    for i in range(1, rows + 1):
+        if i >= len(lines):
+            raise ValueError(f"Expected {rows} grid rows, ran out at row {i}.")
+        row_str = lines[i]
+        if len(row_str) != cols:
+            raise ValueError(
+                f"Grid row {i} has {len(row_str)} chars, expected {cols}: '{row_str}'"
+            )
+        invalid = set(row_str) - valid_chars
+        if invalid:
+            raise ValueError(
+                f"Grid row {i} contains invalid characters {invalid}: '{row_str}'"
+            )
+        grid_chars.append(list(row_str))
+ 
+    # Lines N+2, N+3, N+4: agent start positions
+    agent_order = [AgentID.A, AgentID.B, AgentID.C]
+    start_positions = {}
+    for j, aid in enumerate(agent_order):
+        line_idx = rows + 1 + j
+        if line_idx >= len(lines):
+            raise ValueError(f"Missing start position for agent {aid.value}.")
+        try:
+            r, c = map(int, lines[line_idx].split())
+        except ValueError:
+            raise ValueError(
+                f"Agent {aid.value} start position must be two integers, "
+                f"got: '{lines[line_idx]}'"
+            )
+        if not (0 <= r < rows and 0 <= c < cols):
+            raise ValueError(
+                f"Agent {aid.value} start ({r},{c}) is out of bounds "
+                f"for {rows}x{cols} board."
+            )
+        if grid_chars[r][c] == 'X':
+            raise ValueError(
+                f"Agent {aid.value} start ({r},{c}) is on an Obstacle."
+            )
+        start_positions[aid] = (r, c)
+ 
+    return rows, cols, max_rounds, grid_chars, start_positions
+ 
+ 
+# ─────────────────────────────────────────────
+# 2. RESULTS WRITER
+# ─────────────────────────────────────────────
+ 
+class ResultsWriter:
+    """
+    Writes per-move node reports and the final summary to results.txt.
+    """
+ 
+    def __init__(self, filepath: str = "results.txt"):
+        self.filepath = filepath
+        self._file = open(filepath, 'w', encoding='utf-8')
+        self._move_reports: list[MoveReport] = []
+ 
+    def write(self, text: str, to_console: bool = True):
+        """Write text to file (and optionally console)."""
+        self._file.write(text + '\n')
+        self._file.flush()
+        if to_console:
+            print(text)
+ 
+    def log_move(self, report: MoveReport):
+        """Log a per-move node report (spec Section 6.2)."""
+        self._move_reports.append(report)
+        self.write(report.to_string())
+        self.write("")   # blank line separator
+ 
+    def log_event(self, event: EventResult):
+        """Log an environmental event."""
+        self.write(f"  [ENV] {event}")
+ 
+    def log_action_result(self, result: ActionResult):
+        """Log action execution details."""
+        for line in result.log:
+            self.write(f"  {line}")
+ 
+    def log_round_scores(self, score_log: list[str]):
+        """Log end-of-round scoring."""
+        self.write("  [SCORE]")
+        for line in score_log:
+            self.write(f"  {line}")
+ 
+    def write_final_summary(self, state: GameState):
+        """Write final scores, winner, and the per-agent summary table."""
+        self.write("\n" + "="*65)
+        self.write("FINAL RESULTS")
+        self.write("="*65)
+ 
+        # Scores
+        for aid in AgentID:
+            agent = state.get_agent(aid)
+            label = ["Expert", "Intermediate", "Novice"][list(AgentID).index(aid)]
+            status = "ELIMINATED" if agent.is_eliminated else "active"
+            self.write(
+                f"  Agent {aid.value} ({label:13s}): "
+                f"score={agent.score:5d}  energy={agent.energy:2d}  "
+                f"cells={state.board.count_owned(aid):3d}  [{status}]"
+            )
+ 
+        winner = state.winner()
+        if winner:
+            label = ["Expert", "Intermediate", "Novice"][list(AgentID).index(winner)]
+            self.write(f"\n  WINNER: Agent {winner.value} ({label})")
+        else:
+            self.write("\n  RESULT: Draw / no winner determined.")
+ 
+        self.write("="*65)
+ 
+        # Per-agent search summary
+        _write_summary_table_to_file(self, self._move_reports)
+ 
+    def close(self):
+        self._file.close()
+ 
+ 
+def _write_summary_table_to_file(writer: ResultsWriter, reports: list[MoveReport]):
+    """Write the summary table to both file and console."""
+    writer.write("\n" + "="*65)
+    writer.write("GAME SUMMARY — Search Statistics")
+    writer.write("="*65)
+    writer.write(
+        f"{'Agent':<20} {'Moves':>6} {'Nodes':>10} {'Pruned':>10} {'Efficiency':>12}"
+    )
+    writer.write("-"*65)
+ 
+    for aid in AgentID:
+        agent_reports = [r for r in reports if r.agent_id == aid]
+        if not agent_reports:
+            continue
+        total_nodes  = sum(r.nodes_explored for r in agent_reports)
+        total_pruned = sum(r.nodes_pruned   for r in agent_reports)
+        total        = total_nodes + total_pruned
+        eff          = (total_pruned / total * 100) if total > 0 else 0.0
+        label = f"{aid.value} ({'Expert' if aid==AgentID.A else 'Intermediate' if aid==AgentID.B else 'Novice'})"
+        writer.write(
+            f"{label:<20} {len(agent_reports):>6} "
+            f"{total_nodes:>10,} {total_pruned:>10,} {eff:>11.1f}%"
+        )
+ 
+    writer.write("="*65)
+ 
+
+
+
+
+
+
+
+
+
+
+
+
  
 # ─────────────────────────────────────────────
 # TEST Func
