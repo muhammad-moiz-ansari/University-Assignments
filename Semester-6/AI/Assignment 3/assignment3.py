@@ -292,13 +292,14 @@ class GameState:
             if self.board.count_owned(aid) > threshold:
                 return True
  
+        # All remaining agents have 0 energy
+        if all(self.get_agent(aid).energy == 0 for aid in active):
+            return True
+
         return False
  
     def winner(self) -> Optional[AgentID]:
-        """Determine winner at game end. None if game not over"""
-        if not self.is_terminal():
-            return None
-        # Highest score wins
+        """Determine winner based on highest score."""
         active = self.active_agents()
         if not active:
             return None
@@ -2325,10 +2326,13 @@ class BattlefieldGUI:
                         dpg.add_button(label="Run",
                                        tag="btn_run",
                                        callback=self._cb_run,
-                                       width=80, height=32)
+                                       width=60, height=32)
                         dpg.add_button(label="Stop",
                                        callback=self._cb_stop,
-                                       width=80, height=32)
+                                       width=60, height=32)
+                        dpg.add_button(label="End",
+                                       callback=self._cb_end,
+                                       width=60, height=32)
 
                     dpg.add_text("Speed (moves/sec):", color=COL_TEXT)
                     dpg.add_slider_float(tag="slider_speed",
@@ -2540,7 +2544,7 @@ class BattlefieldGUI:
 
     def _do_step(self):
         """Advance one move and refresh UI."""
-        if self.loop.done:
+        if getattr(self, '_game_over_handled', False) or self.loop.done:
             self._add_log("Game over.")
             return
 
@@ -2565,35 +2569,43 @@ class BattlefieldGUI:
         self._refresh_stats()
 
         if not still_running or self.loop.done:
-            self._add_log("=== GAME OVER ===")
-            winner = self.state.winner()
-            if winner:
-                self._add_log(f"Winner: Agent {winner.value}!")
-                dpg.set_value("txt_winner_map", f"GAME OVER! Winner: Agent {winner.value} (Score: {self.state.get_agent(winner).score})")
-            else:
-                dpg.set_value("txt_winner_map", "GAME OVER! Draw / No Winner")
-            
-            self._add_log("--- GAME SUMMARY ---")
-            for aid in AgentID:
-                agent_reports = [r for r in self.loop.writer._move_reports if r.agent_id == aid]
-                if agent_reports:
-                    total_nodes = sum(r.nodes_explored for r in agent_reports)
-                    total_pruned = sum(r.nodes_pruned for r in agent_reports)
-                    eff = (total_pruned / (total_nodes + total_pruned) * 100) if (total_nodes + total_pruned) > 0 else 0.0
-                    self._add_log(f"Agent {aid.value}: {total_nodes} nodes, {total_pruned} pruned ({eff:.1f}%)")
-            
-            self._running_auto = False
+            self._ui_game_over()
+
+    def _ui_game_over(self):
+        if getattr(self, '_game_over_handled', False):
+            return
+        self._game_over_handled = True
+        self._add_log("=== GAME OVER ===")
+        winner = self.state.winner()
+        if winner:
+            self._add_log(f"Winner: Agent {winner.value}!")
+            dpg.set_value("txt_winner_map", f"GAME OVER! Winner: Agent {winner.value} (Score: {self.state.get_agent(winner).score})")
+        else:
+            dpg.set_value("txt_winner_map", "GAME OVER! Draw / No Winner")
+        
+        self._add_log("--- GAME SUMMARY ---")
+        for aid in AgentID:
+            agent_reports = [r for r in self.loop.writer._move_reports if r.agent_id == aid]
+            if agent_reports:
+                total_nodes = sum(r.nodes_explored for r in agent_reports)
+                total_pruned = sum(r.nodes_pruned for r in agent_reports)
+                eff = (total_pruned / (total_nodes + total_pruned) * 100) if (total_nodes + total_pruned) > 0 else 0.0
+                self._add_log(f"Agent {aid.value}: {total_nodes} nodes, {total_pruned} pruned ({eff:.1f}%)")
+        
+        self._running_auto = False
 
     # ─────────────────────────────────────────
     # CALLBACKS
     # ─────────────────────────────────────────
 
     def _cb_next(self, sender, app_data):
-        if not self.loop.done:
+        if not getattr(self, '_game_over_handled', False) and not self.loop.done:
             self._do_step()
 
     def _cb_run(self, sender, app_data):
-        if self._running_auto or self.loop.done:
+        if self._running_auto or self.loop.done or getattr(self, '_game_over_handled', False):
+            return
+        if hasattr(self, '_auto_thread') and self._auto_thread.is_alive():
             return
         self._running_auto = True
         self._auto_thread  = threading.Thread(target=self._auto_run, daemon=True)
@@ -2602,13 +2614,25 @@ class BattlefieldGUI:
     def _cb_stop(self, sender, app_data):
         self._running_auto = False
 
+    def _cb_end(self, sender, app_data):
+        if not getattr(self, '_game_over_handled', False) and not self.loop.done:
+            self._running_auto = False
+            self._add_log("Game terminated")
+            self.loop._end_game()
+            self._ui_game_over()
+
     def _auto_run(self):
         """Background thread: keep stepping at configured speed."""
-        while self._running_auto and not self.loop.done:
+        while self._running_auto and not self.loop.done and not getattr(self, '_game_over_handled', False):
             speed   = dpg.get_value("slider_speed")
             delay   = 1.0 / max(speed, 0.1)
             self._do_step()
-            time.sleep(delay)
+            
+            slept = 0.0
+            while slept < delay and self._running_auto:
+                time.sleep(0.05)
+                slept += 0.05
+                
         self._running_auto = False
 
     # ─────────────────────────────────────────
