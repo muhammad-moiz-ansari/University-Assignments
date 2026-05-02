@@ -555,6 +555,12 @@ def get_legal_actions(state: GameState, agent_id: AgentID) -> list[list[Action]]
  
     # Cross product: combine one action per unit
     combos = _cross_product(per_unit_actions)
+    
+    # LIMIT to top 10 actions to prevent combinatorial explosion in Expectiminimax
+    # Since actions are pre-sorted by priority, the first combinations are generally the best.
+    if len(combos) > 10:
+        combos = combos[:10]
+        
     return combos
  
  
@@ -562,32 +568,43 @@ def _get_unit_actions(state: GameState, agent: AgentState, unit: Unit) -> list[A
     """Legal actions for a single unit."""
     actions = []
     aid = agent.agent_id
- 
+
     # Always legal: Wait
-    actions.append(Action(ActionType.WAIT, unit.unit_id, aid))
- 
+    wait_act = Action(ActionType.WAIT, unit.unit_id, aid)
+
     # No energy or disabled -> only Wait
     if agent.energy <= 0 or not unit.can_act():
-        return actions
- 
+        return [wait_act]
+
     board = state.board
     r, c = unit.row, unit.col
- 
+
+    attacks = []
+    moves_unowned = []
+    fortifies = []
+    moves_owned = []
+
     for nr, nc in board.adjacent_cells(r, c):
         cell = board.get_cell(nr, nc)
- 
-        # MOVE: to any passable cell
-        if cell.is_passable():
-            actions.append(Action(ActionType.MOVE, unit.unit_id, aid, nr, nc))
- 
+
         # ATTACK: opponent-owned adjacent cell (without moving)
         if cell.owner is not None and cell.owner != aid:
-            actions.append(Action(ActionType.ATTACK, unit.unit_id, aid, nr, nc))
- 
+            attacks.append(Action(ActionType.ATTACK, unit.unit_id, aid, nr, nc))
+
+        # MOVE: to any passable cell
+        if cell.is_passable():
+            if cell.owner != aid:
+                moves_unowned.append(Action(ActionType.MOVE, unit.unit_id, aid, nr, nc))
+            else:
+                moves_owned.append(Action(ActionType.MOVE, unit.unit_id, aid, nr, nc))
+
         # FORTIFY: own adjacent cell (defense < 3)
         if cell.owner == aid and cell.defense < 3:
-            actions.append(Action(ActionType.FORTIFY, unit.unit_id, aid, nr, nc))
- 
+            fortifies.append(Action(ActionType.FORTIFY, unit.unit_id, aid, nr, nc))
+
+    # Priority sort: Attacks > Moves to unowned > Fortifies > Moves to owned > Wait
+    actions = attacks + moves_unowned + fortifies + moves_owned + [wait_act]
+    
     return actions
  
  
@@ -1370,7 +1387,9 @@ def evaluate(state: GameState, agent_id: AgentID, eval_factors: int) -> float:
     f1_score_diff = my_score - avg_opp_score
  
     if eval_factors == 1:
-        return float(f1_score_diff)
+        my_cells = board.count_owned(agent_id)
+        opp_cells = sum(board.count_owned(o) for o in opponents)
+        return float(f1_score_diff + 0.5 * (my_cells - opp_cells))
  
     # ── Factor 2: Territory control ────────────────────────────────────────
     # Owning more cells = more points per round = compounding advantage.
@@ -2279,13 +2298,14 @@ class BattlefieldGUI:
                 # ── Left: board ──────────────────────────────────────────
                 with dpg.child_window(tag="board_panel",
                                       width=board_px_w + 4,
-                                      height=board_px_h + 30,
+                                      height=board_px_h + 60,
                                       border=False):
                     dpg.add_text("Board", color=COL_TEXT)
                     with dpg.drawlist(width=board_px_w,
                                       height=board_px_h,
                                       tag="board_dl"):
                         self._draw_board_initial()
+                    dpg.add_text("", tag="txt_winner_map", color=(255, 215, 0, 255))
 
                 # ── Right: controls + stats + log ────────────────────────
                 with dpg.child_window(tag="right_panel",
@@ -2480,8 +2500,9 @@ class BattlefieldGUI:
     def _refresh_stats(self):
         """Update the agent stats table and round label."""
         state = self.state
+        display_round = min(state.round_number, state.max_rounds)
         dpg.set_value("txt_round",
-                      f"Round: {state.round_number} / {state.max_rounds}")
+                      f"Round: {display_round} / {state.max_rounds}")
 
         for aid in AgentID:
             agent = state.get_agent(aid)
@@ -2548,6 +2569,19 @@ class BattlefieldGUI:
             winner = self.state.winner()
             if winner:
                 self._add_log(f"Winner: Agent {winner.value}!")
+                dpg.set_value("txt_winner_map", f"GAME OVER! Winner: Agent {winner.value} (Score: {self.state.get_agent(winner).score})")
+            else:
+                dpg.set_value("txt_winner_map", "GAME OVER! Draw / No Winner")
+            
+            self._add_log("--- GAME SUMMARY ---")
+            for aid in AgentID:
+                agent_reports = [r for r in self.loop.writer._move_reports if r.agent_id == aid]
+                if agent_reports:
+                    total_nodes = sum(r.nodes_explored for r in agent_reports)
+                    total_pruned = sum(r.nodes_pruned for r in agent_reports)
+                    eff = (total_pruned / (total_nodes + total_pruned) * 100) if (total_nodes + total_pruned) > 0 else 0.0
+                    self._add_log(f"Agent {aid.value}: {total_nodes} nodes, {total_pruned} pruned ({eff:.1f}%)")
+            
             self._running_auto = False
 
     # ─────────────────────────────────────────
