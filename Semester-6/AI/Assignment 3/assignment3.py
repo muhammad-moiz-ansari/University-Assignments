@@ -1641,28 +1641,143 @@ def _next_agent(state: GameState, current: AgentID) -> AgentID:
  
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# ─────────────────────────────────────────────
+# 6. PUBLIC INTERFACE: choose_best_action
+# ─────────────────────────────────────────────
+ 
+@dataclass
+class MoveReport:
+    """Per-move node report (Section 6.2 of assignment)."""
+    move_number     : int
+    agent_id        : AgentID
+    action_label    : str
+    nodes_explored  : int
+    nodes_pruned    : int
+    pruning_pct     : float
+    chosen_value    : float
+    elapsed_ms      : float
+ 
+    def to_string(self) -> str:
+        return (
+            f"Move {self.move_number} | Agent {self.agent_id.value} "
+            f"({AGENT_CONFIGS[self.agent_id].agent_id.value}) | "
+            f"Action: {self.action_label}\n"
+            f"  Expectiminimax nodes explored : {self.nodes_explored:,}\n"
+            f"  Nodes pruned (Alpha-Beta)     : {self.nodes_pruned:,} "
+            f"({self.pruning_pct:.1f}%)\n"
+            f"  Chosen action value (utility) : {self.chosen_value:.4f}\n"
+            f"  Time elapsed                  : {self.elapsed_ms:.1f} ms"
+        )
+ 
+ 
+def choose_best_action(
+    state       : GameState,
+    agent_id    : AgentID,
+    move_number : int,
+) -> tuple[list[Action], MoveReport]:
+    """
+    Entry point: run Expectiminimax for the given agent and return
+    the best action combo plus a MoveReport for logging.
+ 
+    Args:
+        state       : current game state (NOT mutated)
+        agent_id    : which agent is deciding
+        move_number : global move counter for the report
+ 
+    Returns:
+        (best_actions, report)
+    """
+    config = AGENT_CONFIGS[agent_id]
+    stats  = SearchStats()
+ 
+    # Clear transposition table each top-level decision for Expert
+    if config.use_transposition:
+        _expert_tt.clear()
+ 
+    actions_list = get_legal_actions(state, agent_id)
+ 
+    best_val     = -math.inf
+    best_actions = actions_list[0] if actions_list else []
+ 
+    for actions in actions_list:
+        # Each top-level action goes through a chance node first
+        chance_val = _chance_node(
+            state        = state,
+            acting_agent = agent_id,
+            actions      = actions,
+            next_agent_id= _next_agent(state, agent_id),
+            root_agent   = agent_id,
+            depth        = config.max_depth - 1,
+            alpha        = -math.inf,
+            beta         = math.inf,
+            config       = config,
+            stats        = stats,
+            next_is_max  = False,   # after our move it's opponents' turn (MIN)
+        )
+        if chance_val > best_val:
+            best_val     = chance_val
+            best_actions = actions
+ 
+    action_label = _actions_label(best_actions)
+ 
+    report = MoveReport(
+        move_number   = move_number,
+        agent_id      = agent_id,
+        action_label  = action_label,
+        nodes_explored= stats.nodes_explored,
+        nodes_pruned  = stats.nodes_pruned,
+        pruning_pct   = stats.pruning_pct(),
+        chosen_value  = best_val,
+        elapsed_ms    = stats.elapsed_ms(),
+    )
+ 
+    return best_actions, report
+ 
+ 
+def _actions_label(actions: list[Action]) -> str:
+    """Human-readable label for a list of actions."""
+    parts = []
+    for a in actions:
+        if a.action_type == ActionType.WAIT:
+            parts.append("Wait")
+        else:
+            parts.append(f"{a.action_type.value}({a.target_row},{a.target_col})")
+    return " + ".join(parts)
+ 
+ 
+# ─────────────────────────────────────────────
+# 7. GAME SUMMARY TABLE
+# ─────────────────────────────────────────────
+ 
+def print_summary_table(reports: list[MoveReport]):
+    """Print end-of-game summary table (Section 6.2)."""
+    print("\n" + "="*65)
+    print("GAME SUMMARY — Search Statistics")
+    print("="*65)
+    print(f"{'Agent':<12} {'Moves':>6} {'Nodes':>10} {'Pruned':>10} {'Efficiency':>12}")
+    print("-"*65)
+ 
+    for aid in AgentID:
+        agent_reports = [r for r in reports if r.agent_id == aid]
+        if not agent_reports:
+            continue
+        total_nodes  = sum(r.nodes_explored for r in agent_reports)
+        total_pruned = sum(r.nodes_pruned   for r in agent_reports)
+        total        = total_nodes + total_pruned
+        eff          = (total_pruned / total * 100) if total > 0 else 0.0
+        label        = f"{aid.value} ({['Expert','Intermediate','Novice'][list(AgentID).index(aid)]})"
+        print(f"{label:<12} {len(agent_reports):>6} {total_nodes:>10,} {total_pruned:>10,} {eff:>11.1f}%")
+ 
+    print("="*65)
+ 
+ 
 # ─────────────────────────────────────────────
 # TEST Func
 # ─────────────────────────────────────────────
  
 if __name__ == "__main__":
-    random.seed(7)
+    import random
+    random.seed(42)
  
     grid_chars = [
         list("........"),
@@ -1681,61 +1796,43 @@ if __name__ == "__main__":
     }
     state = build_initial_state(8, 8, 30, grid_chars, start_positions)
  
-    print("=== Initial Board ===")
-    print(state.board)
+    print("=== Agent Configs ===")
+    for aid, cfg in AGENT_CONFIGS.items():
+        print(f"  {aid.value}: depth={cfg.max_depth}, radius={cfg.obs_radius}, "
+              f"branches={cfg.chance_branches}, factors={cfg.eval_factors}, "
+              f"tt={cfg.use_transposition}")
     print()
  
-    # Test each event explicitly
-    for event_tag in ["supply_drop", "earthquake", "reinforcement", "fog_of_war"]:
-        s = state.deep_copy()
-        res = apply_environmental_event(s, event_tag)
-        print(f"[{event_tag}]")
-        print(" ", res)
-        if event_tag == "supply_drop":
-            # Find the temp fortress
-            for r in range(s.board.rows):
-                for c in range(s.board.cols):
-                    cell = s.board.get_cell(r, c)
-                    if cell.temp_fortress_rounds > 0:
-                        print(f"  Temp fortress at ({r},{c}), countdown={cell.temp_fortress_rounds}")
-        if event_tag == "reinforcement":
-            for aid in AgentID:
-                agent = s.get_agent(aid)
-                bonus = [u for u in agent.units if u.is_bonus]
-                if bonus:
-                    print(f"  Bonus unit: {bonus[0]}")
-        if event_tag == "fog_of_war":
-            print(f"  Fog active: {s.fog_active}")
-            for aid in AgentID:
-                r = get_effective_radius(aid, s)
-                print(f"  {aid.value} effective radius: {r}")
+    print("=== Novice chance branches (top-2) ===")
+    print(f"  {NOVICE_BRANCHES}")
+    print()
+ 
+    all_reports = []
+ 
+    # Run one move for each agent (reduced depth for speed in test)
+    for aid in [AgentID.C, AgentID.B, AgentID.A]:
+        # Temporarily reduce depth for smoke test speed
+        original_depth = AGENT_CONFIGS[aid].max_depth
+        AGENT_CONFIGS[aid].max_depth = 2
+ 
+        print(f"=== {aid.value} choosing action (depth=2 for test) ===")
+        actions, report = choose_best_action(state, aid, move_number=len(all_reports)+1)
+        all_reports.append(report)
+        print(report.to_string())
         print()
  
-    # Test Supply Drop expiry
-    print("=== Supply Drop expiry test ===")
-    s2 = state.deep_copy()
-    res = apply_environmental_event(s2, "supply_drop")
-    print(res)
-    for i in range(4):
-        expired = tick_temp_fortresses(s2)
-        print(f"  Round tick {i+1}: {expired if expired else 'nothing expired'}")
-    print()
+        AGENT_CONFIGS[aid].max_depth = original_depth  # restore
  
-    # Test round scoring
-    print("=== Round scoring ===")
-    s3 = state.deep_copy()
-    log = score_all_agents(s3)
-    for line in log:
-        print(line)
-    print()
+    # Summary table
+    print_summary_table(all_reports)
  
-    # Test Fog of War radius
-    print("=== Fog of War radius ===")
-    s4 = state.deep_copy()
+    print()
+    print("=== Evaluation function checks ===")
     for aid in AgentID:
-        print(f"  {aid.value} normal radius : {get_effective_radius(aid, s4)}")
-    apply_environmental_event(s4, "fog_of_war")
-    for aid in AgentID:
-        print(f"  {aid.value} fog radius    : {get_effective_radius(aid, s4)}")
-    clear_fog(s4)
-    print(f"  Fog cleared: {s4.fog_active}")
+        for factors in [1, 3, 5]:
+            val = evaluate(state, aid, factors)
+            print(f"  {aid.value} eval(factors={factors}): {val:.2f}")
+ 
+    print()
+    print("=== Transposition table size after Expert search ===")
+    print(f"  {len(_expert_tt)} entries")
