@@ -1967,79 +1967,271 @@ def _write_summary_table_to_file(writer: ResultsWriter, reports: list[MoveReport
  
 
 
-
-
-
-
-
-
-
-
-
-
+# ─────────────────────────────────────────────
+# 3. GAME LOOP
+# ─────────────────────────────────────────────
+ 
+class GameLoop:
+    """
+    How to run the game:
+        loop = GameLoop(state, writer)
+        loop.run()           # play to completion
+        # or step-by-step:
+        loop.step()          # advance one agent action
+    """
+ 
+    def __init__(self, state: GameState,    # initial state (from build_initial_state)
+                 writer: ResultsWriter,     # ResultsWriter for logging
+                 use_search: bool = True):  # if False, agents pick random actions (for fast testing)
+        self.state      = state
+        self.writer     = writer
+        self.use_search = use_search
+        self.move_number= 0
+        self.done       = False
+ 
+        # Track which agent index within the round we're on
+        self._agent_idx = 0
+        self._round_started = False
+ 
+        # For GUI: store last move report and event for display
+        self.last_report: Optional[MoveReport] = None
+        self.last_event : Optional[EventResult] = None
+        self.last_action_result: Optional[ActionResult] = None
+ 
+    def run(self) -> GameState:
+        """Play the game to completion. Returns final state."""
+        while not self.done:
+            self.step()
+        return self.state
+ 
+    def step(self) -> bool:
+        """
+        Advance one agent's turn.
+        Returns True if the game is still running, False if it ended.
+        """
+        if self.done:
+            return False
+ 
+        state = self.state
+ 
+        # ── Start of new round ────────────────────────────────────────────
+        if self._agent_idx == 0 and not self._round_started:
+            self._round_started = True
+            self.writer.write(
+                f"\n{'─'*50}\n"
+                f"ROUND {state.round_number} / {state.max_rounds}\n"
+                f"{'─'*50}"
+            )
+ 
+            # Environmental event (before Agent A moves)
+            event_tag = draw_environmental_event()
+            event_res = apply_environmental_event(state, event_tag)
+            self.last_event = event_res
+            self.writer.log_event(event_res)
+ 
+        # ── Current agent's turn ──────────────────────────────────────────
+        active_agents = state.active_agents()
+        if not active_agents:
+            self._end_game()
+            return False
+ 
+        # Wrap agent index to active agents
+        if self._agent_idx >= len(active_agents):
+            self._agent_idx = 0
+            self._finish_round()
+            return not self.done
+ 
+        agent_id = active_agents[self._agent_idx]
+ 
+        self.writer.write(f"\n  >> {agent_id.value} turn:")
+ 
+        # Choose action
+        if self.use_search:
+            self.move_number += 1
+            actions, report = choose_best_action(state, agent_id, self.move_number)
+            self.last_report = report
+            self.writer.log_move(report)
+        else:
+            # Random fallback for fast testing
+            actions_list = get_legal_actions(state, agent_id)
+            actions = random.choice(actions_list)
+            self.move_number += 1
+            self.writer.write(
+                f"  [RANDOM] {agent_id.value} → {[str(a) for a in actions]}"
+            )
+ 
+        # Execute actions
+        result = execute_actions(state, agent_id, actions)
+        self.last_action_result = result
+        self.writer.log_action_result(result)
+ 
+        # Award elimination bonus if any opponent was just eliminated
+        award_elimination_bonus(state, agent_id, result)
+ 
+        # Tick unit cooldowns
+        tick_units(state, agent_id)
+ 
+        # Clear fog if it was applied this turn
+        if state.fog_active:
+            clear_fog(state)
+ 
+        # Check for immediate win condition (>60% cells)
+        if state.is_terminal():
+            self._end_game()
+            return False
+ 
+        self._agent_idx += 1
+        return True
+ 
+    def _finish_round(self):
+        """Called after all agents have moved in a round."""
+        state = self.state
+ 
+        # Score all agents
+        score_log = score_all_agents(state)
+        self.writer.log_round_scores(score_log)
+ 
+        # Tick temp fortresses and bonus units
+        expired_fortresses = tick_temp_fortresses(state)
+        for msg in expired_fortresses:
+            self.writer.write(f"  [EXPIRY] {msg}")
+ 
+        expired_units = tick_bonus_units(state)
+        for msg in expired_units:
+            self.writer.write(f"  [EXPIRY] {msg}")
+ 
+        # Check elimination: agents with 0 energy and no active units
+        for aid in AgentID:
+            agent = state.get_agent(aid)
+            if not agent.is_eliminated:
+                if len(agent.units) == 0:
+                    agent.is_eliminated = True
+                    self.writer.write(f"  [ELIM] {aid.value} has no units — eliminated!")
+ 
+        # Print board snapshot
+        self.writer.write(f"\n  Board after round {state.round_number}:")
+        for line in repr(state.board).split('\n'):
+            self.writer.write(f"    {line}")
+ 
+        # Advance round counter
+        state.round_number += 1
+        self._round_started = False
+ 
+        # Check terminal
+        if state.is_terminal():
+            self._end_game()
+ 
+    def _end_game(self):
+        """Finalise the game."""
+        self.done = True
+        self.writer.write("\n" + "="*50)
+        self.writer.write("GAME OVER")
+        self.writer.write("="*50)
+        self.writer.write_final_summary(self.state)
+        self.writer.close()
+ 
  
 # ─────────────────────────────────────────────
-# TEST Func
+# 4. MAIN ENTRY POINT
+# ─────────────────────────────────────────────
+ 
+def main(board_path: str = "board.txt",
+         results_path: str = "results.txt",
+         use_search: bool = True,
+         seed: Optional[int] = None):
+    """
+    parse board.txt → build state → run game loop → write results.txt
+    """
+    if seed is not None:
+        random.seed(seed)
+ 
+    print(f"Loading board from: {board_path}")
+    rows, cols, max_rounds, grid_chars, start_positions = parse_board(board_path)
+    print(f"Board: {rows}x{cols}, {max_rounds} rounds")
+    print(f"Starts: A={start_positions[AgentID.A]}, "
+          f"B={start_positions[AgentID.B]}, "
+          f"C={start_positions[AgentID.C]}")
+ 
+    state  = build_initial_state(rows, cols, max_rounds, grid_chars, start_positions)
+    writer = ResultsWriter(results_path)
+ 
+    writer.write(f"Stochastic Battlefield Game — {rows}x{cols} board, {max_rounds} rounds")
+    writer.write(f"Agents: A(Expert,d=7), B(Intermediate,d=5), C(Novice,d=3)")
+    writer.write("="*65 + "\n")
+ 
+    loop = GameLoop(state, writer, use_search=use_search)
+    final_state = loop.run()
+ 
+    print(f"\nResults written to: {results_path}")
+    return final_state
+ 
+ 
+# ─────────────────────────────────────────────
+# TEST Part
 # ─────────────────────────────────────────────
  
 if __name__ == "__main__":
-    import random
-    random.seed(42)
+    import tempfile, os
  
-    grid_chars = [
-        list("........"),
-        list(".X..F..."),
-        list("....X..."),
-        list("..M....."),
-        list(".......M"),
-        list("...X...."),
-        list("..F..X.."),
-        list("........"),
+    # Write a temp board.txt
+    board_content = """8 8 30
+........
+.X..F...
+....X...
+..M.....
+.......M
+...X....
+..F..X..
+........
+0 0
+0 7
+7 3
+"""
+    board_path   = "board.txt"
+    results_path = "results_test.txt"
+ 
+    with open(board_path, 'w') as f:
+        f.write(board_content)
+ 
+    print("=== Parser test ===")
+    rows, cols, max_rounds, grid_chars, starts = parse_board(board_path)
+    print(f"Parsed: {rows}x{cols}, {max_rounds} rounds")
+    print(f"Grid row 0: {''.join(grid_chars[0])}")
+    print(f"Grid row 1: {''.join(grid_chars[1])}")
+    print(f"Starts: {starts}")
+    print()
+ 
+    # Run 3 rounds with RANDOM actions (fast, no search)
+    print("=== Game loop test (random actions, 3 rounds max) ===")
+    state = build_initial_state(rows, cols, max_rounds, grid_chars, starts)
+    state.max_rounds = 3   # cap for speed
+ 
+    writer = ResultsWriter(results_path)
+    writer.write("TEST RUN — random actions, 3 rounds\n")
+ 
+    loop = GameLoop(state, writer, use_search=False)
+    random.seed(99)
+    final = loop.run()
+ 
+    print(f"\nFinal board:\n{final.board}")
+    print(f"\nresults written to {results_path}")
+    print()
+ 
+    # Parser error handling
+    print("=== Parser error tests ===")
+    bad_cases = [
+        ("bad_dims",   "8 8\n........\n"),           # missing R
+        ("bad_char",   "8 8 30\n....Z...\n"),         # invalid char
+        ("bad_start",  "8 8 30\n" + "........\n"*8 + "0 0\n0 7\n9 9\n"),  # out of bounds
     ]
-    start_positions = {
-        AgentID.A: (0, 0),
-        AgentID.B: (0, 7),
-        AgentID.C: (7, 3),
-    }
-    state = build_initial_state(8, 8, 30, grid_chars, start_positions)
- 
-    print("=== Agent Configs ===")
-    for aid, cfg in AGENT_CONFIGS.items():
-        print(f"  {aid.value}: depth={cfg.max_depth}, radius={cfg.obs_radius}, "
-              f"branches={cfg.chance_branches}, factors={cfg.eval_factors}, "
-              f"tt={cfg.use_transposition}")
-    print()
- 
-    print("=== Novice chance branches (top-2) ===")
-    print(f"  {NOVICE_BRANCHES}")
-    print()
- 
-    all_reports = []
- 
-    # Run one move for each agent (reduced depth for speed in test)
-    for aid in [AgentID.C, AgentID.B, AgentID.A]:
-        # Temporarily reduce depth for smoke test speed
-        original_depth = AGENT_CONFIGS[aid].max_depth
-        AGENT_CONFIGS[aid].max_depth = 2
- 
-        print(f"=== {aid.value} choosing action (depth=2 for test) ===")
-        actions, report = choose_best_action(state, aid, move_number=len(all_reports)+1)
-        all_reports.append(report)
-        print(report.to_string())
-        print()
- 
-        AGENT_CONFIGS[aid].max_depth = original_depth  # restore
- 
-    # Summary table
-    print_summary_table(all_reports)
- 
-    print()
-    print("=== Evaluation function checks ===")
-    for aid in AgentID:
-        for factors in [1, 3, 5]:
-            val = evaluate(state, aid, factors)
-            print(f"  {aid.value} eval(factors={factors}): {val:.2f}")
- 
-    print()
-    print("=== Transposition table size after Expert search ===")
-    print(f"  {len(_expert_tt)} entries")
+    for label, content in bad_cases:
+        path = f"bad_{label}.txt"
+        with open(path, 'w') as f:
+            f.write(content)
+        try:
+            parse_board(path)
+            print(f"  [{label}] ERROR: should have raised")
+        except (ValueError, FileNotFoundError) as e:
+            print(f"  [{label}] Caught correctly: {e}")
+        os.remove(path)
+
