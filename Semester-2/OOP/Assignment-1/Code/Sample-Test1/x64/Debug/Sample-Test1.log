@@ -1,0 +1,42 @@
+﻿  pch.cpp
+  test.cpp
+D:\Documents\Old Semesters\Semester-2\OOP\Assignments\Assignment 1\Code\Asgn 1\Submission.cpp(28,14): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+  (compiling source file '/test.cpp')
+  
+D:\Documents\Old Semesters\Semester-2\OOP\Assignments\Assignment 1\Code\Asgn 1\Submission.cpp(51,13): warning C4244: '=': conversion from 'float' to 'int', possible loss of data
+  (compiling source file '/test.cpp')
+  
+D:\Documents\Old Semesters\Semester-2\OOP\Assignments\Assignment 1\Code\Asgn 1\Submission.cpp(78,21): warning C4244: '=': conversion from 'float' to 'int', possible loss of data
+  (compiling source file '/test.cpp')
+  
+D:\Documents\Old Semesters\Semester-2\OOP\Assignments\Assignment 1\Code\Asgn 1\Submission.cpp(657,33): warning C4244: 'return': conversion from 'double' to 'float', possible loss of data
+  (compiling source file '/test.cpp')
+  
+D:\Documents\Old Semesters\Semester-2\OOP\Assignments\Assignment 1\Code\Sample-Test1\test.cpp(84,2): warning C4305: 'argument': truncation from 'double' to 'float'
+  (compiling source file '/test.cpp')
+  
+D:\Documents\Old Semesters\Semester-2\OOP\Assignments\Assignment 1\Code\Sample-Test1\test.cpp(85,2): warning C4305: 'argument': truncation from 'double' to 'float'
+  (compiling source file '/test.cpp')
+  
+D:\Documents\Old Semesters\Semester-2\OOP\Assignments\Assignment 1\Code\Sample-Test1\test.cpp(101,2): warning C4305: 'argument': truncation from 'int' to 'float'
+  (compiling source file '/test.cpp')
+  
+D:\Documents\Old Semesters\Semester-2\OOP\Assignments\Assignment 1\Code\Sample-Test1\test.cpp(102,2): warning C4305: 'argument': truncation from 'int' to 'float'
+  (compiling source file '/test.cpp')
+  
+D:\Documents\Old Semesters\Semester-2\OOP\Assignments\Assignment 1\Code\Sample-Test1\test.cpp(103,2): warning C4305: 'argument': truncation from 'int' to 'float'
+  (compiling source file '/test.cpp')
+  
+D:\Documents\Old Semesters\Semester-2\OOP\Assignments\Assignment 1\Code\Sample-Test1\test.cpp(108,2): warning C4305: 'argument': truncation from 'int' to 'float'
+  (compiling source file '/test.cpp')
+  
+D:\Documents\Old Semesters\Semester-2\OOP\Assignments\Assignment 1\Code\Asgn 1\Submission.cpp(325): warning C4715: 'check_cu': not all control paths return a value
+D:\Documents\Old Semesters\Semester-2\OOP\Assignments\Assignment 1\Code\Asgn 1\Submission.cpp(311): warning C4715: 'check_cd': not all control paths return a value
+D:\Documents\Old Semesters\Semester-2\OOP\Assignments\Assignment 1\Code\Asgn 1\Submission.cpp(341): warning C4715: 'check_rd': not all control paths return a value
+D:\Documents\Old Semesters\Semester-2\OOP\Assignments\Assignment 1\Code\Asgn 1\Submission.cpp(355): warning C4715: 'check_ru': not all control paths return a value
+D:\Documents\Old Semesters\Semester-2\OOP\Assignments\Assignment 1\Code\Asgn 1\Submission.cpp(371): warning C4715: 'check_dd': not all control paths return a value
+D:\Documents\Old Semesters\Semester-2\OOP\Assignments\Assignment 1\Code\Asgn 1\Submission.cpp(385): warning C4715: 'check_du': not all control paths return a value
+D:\Documents\Old Semesters\Semester-2\OOP\Assignments\Assignment 1\Code\Asgn 1\Submission.cpp(401): warning C4715: 'check_d2d': not all control paths return a value
+D:\Documents\Old Semesters\Semester-2\OOP\Assignments\Assignment 1\Code\Asgn 1\Submission.cpp(415): warning C4715: 'check_d2u': not all control paths return a value
+D:\Documents\Old Semesters\Semester-2\OOP\Assignments\Assignment 1\Code\Asgn 1\Submission.cpp(684): warning C4715: 'SearchCustomer': not all control paths return a value
+  Sample-Test1.vcxproj -> D:\Documents\Old Semesters\Semester-2\OOP\Assignments\Assignment 1\Code\Asgn 1\x64\Debug\Sample-Test1.exe

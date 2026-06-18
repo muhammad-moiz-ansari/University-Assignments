@@ -1,0 +1,343 @@
+/*
+        Your Name: Muhammad Moiz Ansari
+        Your Roll#: 23i-0523 
+        Your Section: BS(CS)-F
+
+*/
+
+#include<iostream>
+#include<cmath>
+using namespace std;
+
+// DON'T CHANGE THE PROTOTYPES OF FUNCTION 
+
+//int* beforedecimal(float number, int base, int itemp, int temp1, int temp2, int rem, int count)
+//{
+//
+//}
+
+int* one_compl(int* arr, int length)
+{
+    for (int i = 0; i < length; ++i)
+    {
+        if (arr[i] == 1)
+            arr[i] = 0;
+        else
+            arr[i] = 1;
+    }
+    return arr;
+}
+
+int* two_compl(int* arr, int length)
+{
+    bool invert = 0;
+
+    for (int i = length; i > 0; --i)
+    {
+        if (invert)
+        {
+            if (arr[i] == 1)
+                invert = 1;
+            else
+                invert = 0;
+
+            if (arr[i] == 1)
+                arr[i] = 0;
+            else
+                arr[i] = 1;
+        }
+    }
+    return arr;
+}
+
+
+//----------------------- Q1 -----------------------
+
+char* BaseConverter(float number, int base)
+{
+    //Initializations
+    int num_temp = fabs(number);
+    
+    float ftemp,
+        dec = 0,
+        adec,     //After decimal
+        bdec_temp = 0,
+        adec_temp = 0;
+    int itemp,
+        temp1,
+        temp2,
+        rem,
+        bdec = num_temp,  //Before decimal
+        count = 0,
+        t_count = 0,
+        dec_check = 0,
+        adec_l = 0,
+        basetemp = base;   //For neg numbers
+    int* arr1 = nullptr;
+    int* arr2 = new int[30];
+    int* arrtemp = nullptr;
+    int* arrtemp2 = new int[30];
+
+    itemp = bdec;
+    adec = num_temp - bdec;
+    if (number < 0)
+        basetemp = 2;
+
+    //---------- Before Decimal ----------
+    //Checking number of iterations for multiple division
+    while (itemp >= basetemp)
+    {
+        itemp = itemp / basetemp;
+        ++count;
+    }
+    t_count = count;
+    cout << count << endl;
+
+    if (number < 0)
+        arrtemp = new int[count + 1];
+    else
+        arr1 = new int[count + 1];
+
+    temp1 = num_temp;
+
+    //Multiple division
+    for (int i = count; i >= 0; --i)
+    {
+        temp2 = temp1 / basetemp;
+        rem = temp1 - (temp2 * basetemp);
+        if (number < 0)
+            arrtemp[i] = rem;
+        else
+            arr1[i] = rem;
+        temp1 = temp2;
+    }
+
+    for (int i = 0; i <= count; ++i)
+    {
+        if (number < 0)
+            cout << arrtemp[i];
+        else
+            cout << arr1[i];
+    }
+        
+    cout << endl;
+
+    //---------- After Decimal ----------
+    if (adec != 0)
+    {
+        dec_check = 1;
+        ftemp = adec;
+
+        do
+        {
+            ftemp = ftemp * basetemp;
+            itemp = ftemp;
+            if (number < 0)
+                arrtemp2 [adec_l] = itemp;
+            else
+                arr2[adec_l] = itemp;
+            ftemp = ftemp - itemp;
+
+            ++adec_l;
+        } while (ftemp != 0 && adec_l < 15);
+
+        for (int j = 0; j < adec_l; ++j)
+        {
+            if (number < 0)
+                cout << arrtemp2[j];
+            else
+                cout << arr2[j];
+        }
+            
+
+    }
+    //---------- Negative Numbers ----------
+    //1's Compliment:
+
+    for (int i = 0; i < (count + 1); ++i)
+    {
+        if (arrtemp[i] == 1)
+            arrtemp[i] = 0;
+        else
+            arrtemp[i] = 1;
+    }
+    for (int i = 0; i < adec_l; ++i)
+    {
+        if (arrtemp2[i] == 1)
+            arrtemp2[i] = 0;
+        else
+            arrtemp2[i] = 1;
+    }
+    /*arrtemp = one_compl(arrtemp, (count + 1));
+    arrtemp2 = one_compl(arrtemp2, adec_l);*/
+
+    //2's Compliment:
+    bool invert = 1;
+
+    for (int i = count; i >= 0; --i)
+    {
+        if (invert)
+        {
+            if (arrtemp[i] == 1)
+                invert = 1;
+            else
+                invert = 0;
+
+            if (arrtemp[i] == 1)
+                arrtemp[i] = 0;
+            else
+                arrtemp[i] = 1;
+        }
+    }
+    invert = 1;
+    for (int i = (adec_l-1); i >= 0; --i)
+    {
+        if (invert)
+        {
+            if (arrtemp2[i] == 1)
+                invert = 1;
+            else
+                invert = 0;
+
+            if (arrtemp2[i] == 1)
+                arrtemp2[i] = 0;
+            else
+                arrtemp2[i] = 1;
+        }
+    }
+
+    //Binary to decimal:
+    for (int i = count, j = 0; i >= 0; --i, ++j)
+    {
+        bdec_temp = bdec_temp + pow(2, j) * arrtemp[i];
+    }
+    for (int i = (adec_l-1), j = -1; i >= 0; --i, --j)
+    {
+        adec_temp = adec_temp + pow(2, j) * arrtemp2[i];
+    }
+
+    //Decimal to base:
+    
+    itemp = bdec_temp;
+    count = 0;
+    adec_l = 0;
+
+    //---------- Before Decimal ----------
+    //Checking number of iterations for multiple division
+    while (itemp >= base)
+    {
+        itemp = itemp / base;
+        ++count;
+    }
+    if (base != 2)
+        t_count = count;
+    cout << count << endl;
+
+    if (base != 2)
+        arr1 = new int[count + 1];
+    else
+        arr1 = new int[t_count + 1];
+
+    temp1 = bdec_temp;
+
+    int z = 0;
+    //Multiple division
+    for (int i = t_count; i >= 0; --i, ++z)
+    {
+        temp2 = temp1 / base;
+        rem = temp1 - (temp2 * base);
+        arr1[i] = rem;
+        temp1 = temp2;
+    }
+    for (int i = 0; z < (t_count + 1); ++i, ++z)
+        arr1[i] = 0;
+
+    for (int i = 0; i <= t_count; ++i)
+    {
+        cout << arr1[i];
+    }
+
+    cout << endl;
+
+    //---------- After Decimal ----------
+    if (adec_temp != 0)
+    {
+        dec_check = 1;
+        ftemp = adec_temp;
+
+        do
+        {
+            ftemp = ftemp * base;
+            itemp = ftemp;
+            arr2[adec_l] = itemp;
+            ftemp = ftemp - itemp;
+
+            ++adec_l;
+        } while (ftemp != 0 && adec_l < 15);
+
+        for (int j = 0; j < adec_l; ++j)
+        {
+            cout << arr2[j];
+        }
+    }
+
+    //---------- Stringing ----------
+    if (base != 2)
+        t_count = count;
+
+    int str_size = (t_count + 1) + dec_check + adec_l;
+    char* str = new char[str_size];
+
+    int j = 0;
+    for (int k = 0; k < (t_count + 1); ++k, ++j)  //Before decimal
+    {
+        if (base > 10)
+        {
+            if(arr1[k]>9)
+                str[j] = arr1[k] + 55;
+            else
+                str[j] = arr1[k] + 48;
+        }
+        else
+            str[j] = arr1[k] + 48;
+    }
+    if (dec_check)  //Decimal point
+        str[j++] = '.';
+    
+
+    for (int k = 0; k < adec_l; ++k, ++j)   //After decimal
+    {
+        if (base > 10)
+        {
+            if (arr2[k] > 9)
+                str[j] = arr2[k] + 55;
+            else
+                str[j] = arr2[k] + 48;
+        }
+        else
+            str[j] = arr2[k] + 48;
+    }
+
+    str[j] = '\0';
+
+    cout << endl;
+    cout << str;
+    return str;
+}
+//
+//int main()
+//{
+//    float number = 236.7283;//505516.2461;//
+//    int base = 8;
+//
+//    cout << "Enter number: ";
+//    cout << endl;
+//    //cin >> number;
+//    cout << "Enter base: ";
+//    cout << endl;
+//    //cin >> base;
+//
+//    BaseConverter(number, base);
+//
+//    return 0;
+//}

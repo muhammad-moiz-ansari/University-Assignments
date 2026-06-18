@@ -1,0 +1,134 @@
+//----------------------- Q3 -----------------------
+
+//Column wise
+bool check_cd(int **board, int r, int c, int queens)
+{
+    if (r < queens)
+    {
+        if (board[r][c] == 0)
+        {
+            check_cd(board, ++r, c, queens);
+        }
+        else
+            return false;
+    }
+    else if (board[r-1][c] == 1)
+        return true;
+}
+bool check_cu(int** board, int r, int c, int queens)
+{
+    if (r >=0)
+    {
+        if (board[r][c] == 0)
+        {
+            check_cu(board, --r, c, queens);
+        }
+        else
+            return false;
+    }
+    else if (board[r+1][c] == 1)
+        return true;
+}
+
+//Row wise
+bool check_rd(int** board, int r, int c, int queens)
+{
+    if (c < queens)
+    {
+        if (board[r][c] == 0)
+        {
+            check_rd(board, r, ++c, queens);
+        }
+        else
+            return false;
+    }
+    else if (board[r][c-1] == 1)
+        return true;
+}
+bool check_ru(int** board, int r, int c, int queens)
+{
+    if (c >= 0)
+    {
+        if (board[r][c] == 0)
+        {
+            check_ru(board, r, --c, queens);
+        }
+        else
+            return false;
+    }
+    else if (board[r][c+1] == 1)
+        return true;
+}
+
+//Diogonal wise
+bool check_dd(int** board, int r, int c, int queens)
+{
+    if (r < queens && c<queens)
+    {
+        if (board[r][c] == 0)
+        {
+            check_dd(board, ++r, ++c, queens);
+        }
+        else
+            return false;
+    }
+    else if (board[r-1][c-1] == 1)
+        return true;
+}
+bool check_du(int** board, int r, int c, int queens)
+{
+    if (r >=0 && c >=0)
+    {
+        if (board[r][c] == 0)
+        {
+            check_du(board, --r, --c, queens);
+        }
+        else
+            return false;
+    }
+    else if(board[r+1][c+1] == 1)
+        return true;
+}
+
+
+bool royalHarmony(int**& board, int row, int column, int queens)
+{
+    if (check_cu(board, row, column, queens) && check_cd(board, row, column, queens) && check_ru(board, row, column, queens) && check_rd(board, row, column, queens) && check_du(board, row, column, queens) && check_dd(board, row, column, queens))
+    {
+        board[row][column] = 1;
+
+        if (row < queens)
+        {
+            board[row][column] = royalHarmony(board, 0, ++row, queens);
+            if (board[row][column] == 0)
+            {
+                if (column < queens)
+                {
+                    return royalHarmony(board, row, ++column, queens);
+                }
+                else
+                    return 0;
+            }
+            else
+            {
+                return 1;
+            }
+        }
+        else 
+            return 1;
+    }
+
+    else if (column+1 < queens)
+    {
+        return royalHarmony(board, row, ++column, queens);
+    }
+    else
+    {
+        return 0;
+    }
+
+
+
+
+
+}

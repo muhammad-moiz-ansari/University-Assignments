@@ -1,0 +1,253 @@
+///////////////////// Header.h /////////////////////
+
+
+/*
+        Your Name: Muhammad Moiz Ansari
+        Your Roll#: 23i-0523
+        Your Section: BS(CS)-F
+        Assignment # 2
+*/
+
+#pragma once
+#include <iostream>
+using namespace std;
+
+class CAList
+{
+    int ksize = 7, vsize = 6, k_index = 0, * v_index = new int[ksize-1];
+    bool *b_key = new bool[ksize];
+
+    string** arr;
+
+public:
+    CAList();
+    
+    CAList& operator[](const char*);
+
+    CAList& operator=(const char*);
+
+    friend ostream& operator<<(ostream& output, const CAList& list);
+
+    ~CAList();
+};
+
+ostream& operator<<(ostream& output, const CAList& list);
+
+
+///////////////////// Q3.cpp /////////////////////
+
+
+/*
+        Your Name: Muhammad Moiz Ansari
+        Your Roll#: 23i-0523
+        Your Section: BS(CS)-F
+        Assignment # 2
+*/
+
+#include <iostream>
+#include "23i-0523_F_Q3.h"
+using namespace std;
+
+//Default Constructor
+CAList::CAList()
+{
+    arr = new string * [ksize];
+    for (int i = 0; i < ksize; ++i)
+        arr[i] = new string[vsize+1];
+
+    for (int i = 0; i < ksize; ++i)
+    {
+        v_index[i] = 1;
+        b_key[i] = 0;
+    }
+}
+
+CAList& CAList::operator[](const char* key)
+{
+    k_index = 0;
+    int i = 0;
+    for (; i < ksize; ++i)
+    {
+        if (arr[i][0] == "\0")
+        {
+            k_index = i;
+            break;
+        }
+        else if (arr[i][0] == key)
+        {
+            k_index = i;
+            break;
+        }
+    }
+    if (!(i < ksize))
+    {
+        cout << "Error: Key space not available. Maximum number of keys attained. The key \"" << key << "\" can not be added." << endl << endl;
+    }
+    else
+    {
+        arr[k_index][0] = key;
+        b_key[k_index] = 1;
+    }
+
+    return *this;
+}
+
+CAList& CAList::operator=(const char* value)
+{
+    int index = -1;
+    
+    for(int i=0; i<ksize; ++i)
+        if (b_key[k_index])
+        {
+            index = k_index;
+            break;
+        }
+
+    if (b_key[k_index] && index>=0)
+    {
+        if (v_index[index] <= vsize)
+        {
+            arr[index][v_index[index]] = value;
+            if (v_index[index] <= vsize)
+                ++v_index[index];
+            b_key[index] = 0;
+        }
+        else
+        {
+            cout << "Error: Value space not available. Maximum number of values attained. The value \"" << value << "\", to the"
+                << " key \"" << arr[index][0] << "\" can not be added." << endl << endl;
+            b_key[k_index] = 0;
+        }
+    }
+    
+    return *this;
+}
+
+ostream& operator<<(ostream& output, const CAList& list)
+{
+    output << "[";
+    for (int i = 0; i < list.ksize; ++i)
+    {
+        if (list.arr[i][0] != "\0")
+        {
+            if (i != 0)
+                output << " ";
+            output << list.arr[i][0] << ":" << "{";
+            for (int j = 1; j <= list.vsize; ++j)
+            {
+                if (list.arr[i][j] != "\0")
+                    output << list.arr[i][j];
+                if (list.arr[i][j + 1] != "\0" && j < list.vsize)
+                    output << ", ";
+                else
+                    break;
+            }
+            output << "}";
+            if (i < (list.ksize - 1) && list.arr[i + 1][0] != "\0")
+                output << ", \n";
+        }
+    }
+    output << "]";
+
+    output << endl << endl;
+
+    return output;
+}
+
+//Destructor
+CAList::~CAList()
+{
+    for (int i = 0; i < ksize; ++i)
+        delete[] arr[i];
+    delete[] arr;
+    arr = NULL;
+}
+
+
+
+///////////////////// main.cpp /////////////////////
+
+
+/*
+		Your Name: Muhammad Moiz Ansari
+		Your Roll#: 23i-0523
+		Your Section: BS(CS)-F
+		Assignment # 2
+*/
+
+#include <iostream>
+#include "23i-0523_F_Q3.h"
+using namespace std;
+
+int main()
+{
+	CAList tt, tt2, tt3; // assume CAList is the name of class
+	// operator[] is used to get "entry" against given "key" from CAList and can be used in following context with operator= to 
+	// create/refresh an entry 
+	
+	tt["OOP"] = "Dr.Ali";
+	tt["OOP"] = "Mr.Shehryar";
+	tt["OOP"] = "Ms.Hida";
+	tt["OOP"] = "Mr.Shams";
+	tt["DLD"] = "Mr.Amir";
+	tt["DLD"] = "Mr.Shams";
+	tt["DLD"] = "Dr.Mehwish";
+	cout << tt; 
+	
+	//output should look like: [ OOP : { Dr.Ali, Mr.Shehryar, Ms.Hida, Mr.Shams}, 
+	//							 DLD : { Mr.Amir, Mr.Shams, Dr.Mehwish } ]
+
+// operator+= with an "entry" is used to add new "value" against a given "key".
+// if entry with given "key" does not exist then new entry is created in CAList.
+// Following operators += and = perform the same operation
+
+//tt2["Algo"] = "Mr.Owais";
+//tt2["OOP"] = "Mr.Shehryar";
+//tt2["Pak Stds"] = "Mr.Ajmal";
+//tt2["Pak Stds"] += "Ms.Gul";
+//tt2["Pak Stds"] = "Ms.Memoona";
+//tt2["Islamiat"] = "Dr.Tayab";
+//tt2["Islamiat"] += "Ms.Sobia";
+//tt2["Islamiat"] = "Mr.Usman";
+//tt2["Islamiat"] += "Ms.Gul";
+//tt2["Islamiat"] += "Mr.Anas";
+
+// following statement creates a new entry in CAList, and then adds values to it
+// operator+ is also used to add two (CAList)s and return a new CAList.
+// operator= is used to assign one List to another(deep copy).
+
+////////////tt3 = tt + tt2; // tt3 now looks like the CAList in figure above!(same as set union operation)
+
+/* At this stage tt, tt2, and tt3 look like following respectively:
+tt:
+
+[ OOP : { Dr.Ali, Mr.Shehryar,Ms.Hida,Mr.Shams},
+DLD : { Mr.Amir,Mr.Shams,Dr.Mehwish } ]
+
+tt2:
+
+[ Algo : { Mr.Owais },
+OOP : {Mr.Shehryar },
+Pak Stds : { Mr.Ajmal,Ms.Gul,Ms.Memoona} ,
+Islamiat : { Dr.Tayab,Ms.Sobia,Mr.Usman,Ms.Gul,Mr.Anas }]
+
+tt3:
+
+[ OOP : { Dr.Ali, Mr.Shehryar,Ms.Hida,Mr.Shams},
+DLD : { Mr.Amir,Mr.Shams,Dr.Mehwish },
+Algo : {Mr.Owais },
+
+Pak Stds : { Mr.Ajmal,Ms.Gul,Ms.Memoona} ,
+Islamiat : { Dr.Tayab,Ms.Sobia,Mr.Usman,Ms.Gul,Mr.Anas }]*/
+
+///////////tt4 = tt - tt2; //This Operation will work similar to the set difference operation
+
+/*
+tt4 :
+
+[OOP:{ Dr.Ali, Ms.Hida, Mr.Shams},
+DLD : { Mr.Amir, Mr.Shams, Dr.Mehwish }] 
+*/
+
+return 0;
+}

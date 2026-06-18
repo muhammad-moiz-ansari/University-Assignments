@@ -1,0 +1,581 @@
+/*
+        Your Name: Muhammad Moiz Ansari
+        Your Roll#: 23i-0523 
+        Your Section: BS(CS)-F
+
+*/
+
+#include<iostream>
+#include<cmath>
+using namespace std;
+
+// DON'T CHANGE THE PROTOTYPES OF FUNCTION 
+
+//int* beforedecimal(float number, int base, int itemp, int temp1, int temp2, int rem, int count)
+//{
+//
+//}
+
+int* one_compl(int* arr, int length)
+{
+    for (int i = 0; i < length; ++i)
+    {
+        if (arr[i] == 1)
+            arr[i] = 0;
+        else
+            arr[i] = 1;
+    }
+    return arr;
+}
+
+int* two_compl(int* arr, int length)
+{
+    bool invert = 0;
+
+    for (int i = length; i > 0; --i)
+    {
+        if (invert)
+        {
+            if (arr[i] == 1)
+                invert = 1;
+            else
+                invert = 0;
+
+            if (arr[i] == 1)
+                arr[i] = 0;
+            else
+                arr[i] = 1;
+        }
+    }
+    return arr;
+}
+
+
+//----------------------- Q1 -----------------------
+
+char* BaseConverter(float number, int base)
+{
+    //Initializations
+    int num_temp = fabs(number);
+    
+    float ftemp,
+        dec = 0,
+        adec,     //After decimal
+        bdec_temp = 0,
+        adec_temp = 0;
+    int itemp,
+        temp1,
+        temp2,
+        rem,
+        bdec = num_temp,  //Before decimal
+        count = 0,
+        t_count = 0,
+        dec_check = 0,
+        adec_l = 0,
+        basetemp = base;   //For neg numbers
+    int* arr1 = nullptr;
+    int* arr2 = new int[30];
+    int* arrtemp = nullptr;
+    int* arrtemp2 = new int[30];
+
+    itemp = bdec;
+    adec = num_temp - bdec;
+    if (number < 0)
+        basetemp = 2;
+
+    //---------- Before Decimal ----------
+    //Checking number of iterations for multiple division
+    while (itemp >= basetemp)
+    {
+        itemp = itemp / basetemp;
+        ++count;
+    }
+    t_count = count;
+    cout << count << endl;
+
+    if (number < 0)
+        arrtemp = new int[count + 1];
+    else
+        arr1 = new int[count + 1];
+
+    temp1 = num_temp;
+
+    //Multiple division
+    for (int i = count; i >= 0; --i)
+    {
+        temp2 = temp1 / basetemp;
+        rem = temp1 - (temp2 * basetemp);
+        if (number < 0)
+            arrtemp[i] = rem;
+        else
+            arr1[i] = rem;
+        temp1 = temp2;
+    }
+
+    for (int i = 0; i <= count; ++i)
+    {
+        if (number < 0)
+            cout << arrtemp[i];
+        else
+            cout << arr1[i];
+    }
+        
+    cout << endl;
+
+    //---------- After Decimal ----------
+    if (adec != 0)
+    {
+        dec_check = 1;
+        ftemp = adec;
+
+        do
+        {
+            ftemp = ftemp * basetemp;
+            itemp = ftemp;
+            if (number < 0)
+                arrtemp2 [adec_l] = itemp;
+            else
+                arr2[adec_l] = itemp;
+            ftemp = ftemp - itemp;
+
+            ++adec_l;
+        } while (ftemp != 0 && adec_l < 15);
+
+        for (int j = 0; j < adec_l; ++j)
+        {
+            if (number < 0)
+                cout << arrtemp2[j];
+            else
+                cout << arr2[j];
+        }
+            
+
+    }
+    //---------- Negative Numbers ----------
+    //1's Compliment:
+
+    for (int i = 0; i < (count + 1); ++i)
+    {
+        if (arrtemp[i] == 1)
+            arrtemp[i] = 0;
+        else
+            arrtemp[i] = 1;
+    }
+    for (int i = 0; i < adec_l; ++i)
+    {
+        if (arrtemp2[i] == 1)
+            arrtemp2[i] = 0;
+        else
+            arrtemp2[i] = 1;
+    }
+    /*arrtemp = one_compl(arrtemp, (count + 1));
+    arrtemp2 = one_compl(arrtemp2, adec_l);*/
+
+    //2's Compliment:
+    bool invert = 1;
+
+    for (int i = count; i >= 0; --i)
+    {
+        if (invert)
+        {
+            if (arrtemp[i] == 1)
+                invert = 1;
+            else
+                invert = 0;
+
+            if (arrtemp[i] == 1)
+                arrtemp[i] = 0;
+            else
+                arrtemp[i] = 1;
+        }
+    }
+    invert = 1;
+    for (int i = (adec_l-1); i >= 0; --i)
+    {
+        if (invert)
+        {
+            if (arrtemp2[i] == 1)
+                invert = 1;
+            else
+                invert = 0;
+
+            if (arrtemp2[i] == 1)
+                arrtemp2[i] = 0;
+            else
+                arrtemp2[i] = 1;
+        }
+    }
+
+    //Binary to decimal:
+    for (int i = count, j = 0; i >= 0; --i, ++j)
+    {
+        bdec_temp = bdec_temp + pow(2, j) * arrtemp[i];
+    }
+    for (int i = (adec_l-1), j = -1; i >= 0; --i, --j)
+    {
+        adec_temp = adec_temp + pow(2, j) * arrtemp2[i];
+    }
+
+    //Decimal to base:
+    
+    itemp = bdec_temp;
+    count = 0;
+    adec_l = 0;
+
+    //---------- Before Decimal ----------
+    //Checking number of iterations for multiple division
+    while (itemp >= base)
+    {
+        itemp = itemp / base;
+        ++count;
+    }
+    if (base != 2)
+        t_count = count;
+    cout << count << endl;
+
+    if (base != 2)
+        arr1 = new int[count + 1];
+    else
+        arr1 = new int[t_count + 1];
+
+    temp1 = bdec_temp;
+
+    int z = 0;
+    //Multiple division
+    for (int i = t_count; i >= 0; --i, ++z)
+    {
+        temp2 = temp1 / base;
+        rem = temp1 - (temp2 * base);
+        arr1[i] = rem;
+        temp1 = temp2;
+    }
+    for (int i = 0; z < (t_count + 1); ++i, ++z)
+        arr1[i] = 0;
+
+    for (int i = 0; i <= t_count; ++i)
+    {
+        cout << arr1[i];
+    }
+
+    cout << endl;
+
+    //---------- After Decimal ----------
+    if (adec_temp != 0)
+    {
+        dec_check = 1;
+        ftemp = adec_temp;
+
+        do
+        {
+            ftemp = ftemp * base;
+            itemp = ftemp;
+            arr2[adec_l] = itemp;
+            ftemp = ftemp - itemp;
+
+            ++adec_l;
+        } while (ftemp != 0 && adec_l < 15);
+
+        for (int j = 0; j < adec_l; ++j)
+        {
+            cout << arr2[j];
+        }
+    }
+
+    //---------- Stringing ----------
+    if (base != 2)
+        t_count = count;
+
+    int str_size = (t_count + 1) + dec_check + adec_l;
+    char* str = new char[str_size];
+
+    int j = 0;
+    for (int k = 0; k < (t_count + 1); ++k, ++j)  //Before decimal
+    {
+        if (base > 10)
+        {
+            if(arr1[k]>9)
+                str[j] = arr1[k] + 55;
+            else
+                str[j] = arr1[k] + 48;
+        }
+        else
+            str[j] = arr1[k] + 48;
+    }
+    if (dec_check)  //Decimal point
+        str[j++] = '.';
+    
+
+    for (int k = 0; k < adec_l; ++k, ++j)   //After decimal
+    {
+        if (base > 10)
+        {
+            if (arr2[k] > 9)
+                str[j] = arr2[k] + 55;
+            else
+                str[j] = arr2[k] + 48;
+        }
+        else
+            str[j] = arr2[k] + 48;
+    }
+
+    str[j] = '\0';
+
+    cout << endl;
+    cout << str;
+    return str;
+}
+
+
+//----------------------- Q2 -----------------------
+/*
+void makeBook(char* text, char***& book, int totalPages)
+{
+
+}
+void cut(char***& book, int totalPages, int FromPage, int ToPage, int FromLine, int ToLine, int FromWord, int ToWord, char*& clipboard)
+{
+
+}
+
+void copy(char***& book, int totalPages, int FromPage, int ToPage, int FromLine, int ToLine, int FromWord, int ToWord, char*& clipboard)
+{
+
+}
+
+void paste(char***& book, int totalPages, char* clipboard, int atPage, int atLine, int afterWord)
+{
+
+}
+
+void Delete(char***& book, int totalPages, int page) // For page deletion
+{
+
+}
+
+void Delete(char***& book, int totalPages, int page, int line) //For line deletion
+{
+
+}
+
+void DeleteText(char***& book, int totalPages, char* text) //For text deletion
+{
+
+}
+
+void insert(char***& book, int totalPages, int position) // insert empty page after position
+{
+
+}
+
+void insert(char***& book, int totalPages, int page, int position) // insert empty line on page
+{
+
+}
+
+void insertText(char***& book, int totalPages, int page, int line, int word, char* text)// Insert text after the word.
+{
+
+}
+
+void removeDoubleSpaces(char***& book, int& totalPages)
+{
+
+}
+
+void concatenateBooks(char***& book1, int totalPages1, char***& book2, int totalPages2, char***& newBook, int& newPages)
+{
+
+}
+
+char* toString(char***& book, int totalPages) //return book with format given below
+{
+
+}
+
+
+//----------------------- Q3 -----------------------
+
+bool royalHarmony(int**& board, int row, int column, int queens)
+{
+
+}
+*/
+
+//----------------------- Q4 -----------------------
+
+//-------- Pattern 1 --------
+void sp_st(int i)
+{
+    if (i > 0)
+    {
+        if ((i - 1) == 0)
+            cout << "*\n";
+        else
+            cout << " ";
+        sp_st(--i);
+    }
+}
+
+void RecursivePattern1(int start, int end)
+{
+    int n = start;
+    sp_st(start);
+    if (start < end / 2)
+    {
+        start += 1;
+
+        RecursivePattern1(start, end);
+
+        if (end % 2 == 0)
+            sp_st(start - 1);
+        else
+        {
+            sp_st(start);
+            if (start == 2)
+                sp_st(--start);
+        }
+    }
+
+}
+
+//-------- Pattern 2 --------
+void spaces2(int i)
+{
+    if (i > 0)
+    {
+        cout << " ";
+        spaces2(--i);
+    }
+}
+
+void stars2(int i, int j)
+{
+    if (i > 0)
+    {
+        cout << "*";
+        i -= 1;
+        stars2(i, j);
+    }
+}
+
+void RecursivePattern2(int n1, int n2)
+{
+    if (n1 > 0)
+    {
+        stars2(n1, n2);
+        spaces2(2 * (n2 - n1));
+        stars2(n1, n2);
+        --n1;
+
+        cout << "\n";
+        RecursivePattern2(n1, n2);
+
+        ++n1;
+        stars2(n1, n2);
+        spaces2(2 * (n2 - n1));
+        stars2(n1, n2);
+        cout << endl;
+
+    }
+}
+
+
+void RecursivePattern3(int n1, int n2)
+{
+
+}
+
+
+//----------------------- Q5 -----------------------
+
+struct SavingAccount
+{
+    char* name;
+    float annualInterestRate;
+    double savingBalance;
+    char* accountNum;
+};
+
+void OpenCustomerAccount(SavingAccount* savers[], int& accountsOpen, char* name, float interestRate, double balance) // a function to create a new account and assign it an account number.
+{
+    
+
+    savers[accountsOpen] = new SavingAccount();
+    
+    //Name:
+    int name_s = 0;
+    for (; *(name + name_s) != '\0'; ++name_s)
+    {
+        ++name_s;
+    }
+    savers[accountsOpen]->name = new char[name_s+1];
+    for (int i = 0; i < (name_s + 1); ++i)
+    {
+        *(savers[accountsOpen]->name + i) = *(name + i);
+        if (i == name_s)
+            *(savers[accountsOpen]->name + i) = '\0';
+    }
+
+    //Annual Interest Rate:
+    savers[accountsOpen]->annualInterestRate = interestRate;
+
+    //Saving Balance:
+    savers[accountsOpen]->savingBalance = balance;
+
+    //Account Number:
+    savers[accountsOpen]->accountNum = new char[5];
+
+    savers[accountsOpen]->accountNum[0] = 'S';
+    savers[accountsOpen]->accountNum[1] = 'A';
+    if (accountsOpen < 10)
+        savers[accountsOpen]->accountNum[2] = '0';
+    else
+        savers[accountsOpen]->accountNum[2] = 48 + accountsOpen / 10;
+
+    savers[accountsOpen]->accountNum[3] = 48 + accountsOpen % 10;
+    savers[accountsOpen]->accountNum[4] = '\0';
+
+    accountsOpen++;
+
+    //cout << savers[accountsOpen]->accountNum;
+}
+
+float calculateMonthlyInterest(SavingAccount* saver) // that calculates the monthly interest by multiplying the balance by annualInterestRate divided by 12
+{
+    return saver->savingBalance * (saver->annualInterestRate / 12);
+}
+
+void modifyInterestRate(SavingAccount* saver, float newValue)
+{
+    saver->annualInterestRate = newValue;
+}
+
+int SearchCustomer(SavingAccount* savers[], int accountsOpen, char* accountNum) // a function that searches for an account using an account number. If the customer is found it returns the array index otherwise return -1
+{
+    if (accountsOpen > 0)
+    {
+        int name_l = 0;
+        for (; *(accountNum + name_l) != '\0'; ++name_l);
+
+        for (int i = 0; i < 100; ++i)
+        {
+            if ((*(accountNum)-48 < 0) || name_l > 2)
+                return -1;
+            if (*(savers[i]->accountNum + 2) == *accountNum)
+            {
+                if (*(savers[i]->accountNum + 3) == *(accountNum + 1))
+                    return i;
+            }
+        }
+        return -1;
+    }
+}
+
+bool UpdateAccountBalance(SavingAccount* savers[], int accountsOpen, char* accountNumVal, double balanceVal) // a function that updates a customer’s balance
+{
+    int index;
+    index=SearchCustomer(savers, accountsOpen, accountNumVal);
+
+    savers[index]->savingBalance = balanceVal;
+    return 0;
+}

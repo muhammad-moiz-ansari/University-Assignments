@@ -1,0 +1,99 @@
+// Extra Test Cases:
+
+// DELETE_CHAIN TEST
+TEST(Shop, delete_Chain) {
+	Shop obj;
+	char name1[5] = "PENS";
+	obj.add_Container(name1, 12);
+	obj.delete_Chain(12);
+	EXPECT_EQ(NULL, (obj.start));
+	char name2[6] = "RULER";
+	char name3[7] = "BINDER";
+	char name4[5] = "TAPE";
+
+	//Test_Case 1:
+	obj.add_Container(name1, 12);
+	obj.add_Container(name2, 7);
+	obj.add_Container(name2, 7);
+	obj.add_Container(name3, 20);
+
+	obj.delete_Chain(7);
+	EXPECT_EQ(0, strcmp(name3, (obj.start->link->name)));
+	EXPECT_EQ(NULL, obj.start->link->link);
+	
+	obj.add_Container(name4, 5);
+	EXPECT_EQ(0, strcmp(name4, (obj.start->link->link->name)));
+
+	//Test_Case 2:
+	Shop obj1;
+	obj1.add_Container(name1, 12);
+	obj1.add_Container(name2, 7);
+	obj1.add_Container(name2, 7);
+	obj1.add_Container(name3, 20);
+	obj1.delete_Chain(12);
+	EXPECT_EQ(0, strcmp(name2, (obj1.start->link->name)));
+	EXPECT_EQ(NULL, obj1.start->link->link->link);
+	
+	obj1.add_Container(name4, 5);
+	EXPECT_EQ(0, strcmp(name4, (obj1.start->link->link->link->name)));
+
+	//Test_Case 3:
+	Shop obj3;
+	obj3.add_Container(name1, 12);
+	obj3.add_Container(name2, 7);
+	obj3.add_Container(name2, 7);
+	obj3.add_Container(name3, 20);
+	obj3.delete_Chain(20);
+	EXPECT_EQ(0, strcmp(name2, (obj3.start->link->link->name)));
+	EXPECT_EQ(NULL, obj3.start->link->link->link);
+	
+	obj3.add_Container(name4, 5);
+	EXPECT_EQ(0, strcmp(name4, (obj3.start->link->link->link->name)));
+
+}
+TEST(Shop, update_name_at_containernumber) {
+	Shop obj;
+	char name1[5] = "PENS";
+	char name2[6] = "RULER";
+	char name3[7] = "BINDER";
+	obj.add_Container(name1, 12);
+	obj.add_Container(name2, 7);
+	obj.add_Container(name2, 7);
+	obj.add_Container(name3, 20);
+
+	obj.update_name_at_containerNumber(7, "PROTRACTOR");
+	obj.update_name_at_containerNumber(12, "HIGHLIGHTER");
+	obj.update_name_at_containerNumber(20, "STAPLER");
+
+	EXPECT_EQ(0, strcmp(obj.start->name, "HIGHLIGHTER"));
+	EXPECT_EQ(0, strcmp(obj.start->link->name, "PROTRACTOR"));
+	EXPECT_EQ(0, strcmp(obj.start->link->link->name, "PROTRACTOR"));
+	EXPECT_EQ(0, strcmp(obj.start->link->link->link->name, "STAPLER"));
+
+}
+TEST(Shop, remove_Duplicate) {
+	Shop obj;
+	char name1[5] = "PENS";
+	char name2[6] = "RULER";
+	char name3[7] = "BINDER";
+	obj.add_Container(name1, 12);
+	obj.add_Container(name1, 20);
+	obj.add_Container(name2, 7);
+	obj.add_Container(name3, 20);
+	obj.add_Container(name3, 20);
+	obj.add_Container(name3, 7);
+	obj.add_Container(name1, 12);
+	obj.remove_Duplicate();
+
+	char* test = obj.start->link->name;
+	EXPECT_EQ(0, strcmp(name1, test));
+	EXPECT_EQ(NULL, (obj.start->link->link->link->link->link));
+
+	Shop obj1;
+	obj1.add_Container(name1, 12);
+	obj1.add_Container(name1, 12);
+	obj1.add_Container(name1, 12);
+	obj1.remove_Duplicate();
+	EXPECT_EQ(0, strcmp(name1, obj1.start->name));
+	EXPECT_EQ(NULL, (obj1.start->link));
+}

@@ -1,0 +1,7 @@
+//OOP Asgn-2, Q-2 Queries
+
+// 1:
+ASSERT_EQ('d', str1[-14]);
+//is this right for Q-2, second test case
+
+// 2:

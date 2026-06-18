@@ -1,0 +1,44 @@
+Error: Value space not available. Maximum number of values attained in the key "OOP". The value "Dr.Mehwish" can not be added.
+
+Error: Key space not available. Maximum number of keys attained. The key "Exp Wr Lab" can not be added.
+
+t1:
+[OOP:{Dr.Ali, Mr.Shehryar, Ms.Hida, Mr.Shams, Mr.Amir, Mr.X},
+ DLD:{Mr.Amir, Mr.Shams, Dr.Mehwish},
+ Algo:{Mr.Owais},
+ Pak Stds:{Mr.Ajmal},
+ Islamiat:{Dr.Tayab},
+ MVC:{Dr.Imran},
+ Exp Wr:{Ms.Rafiah}]
+
+tt:
+[OOP:{Dr.Ali, Mr.Shehryar, Ms.Hida, Mr.Shams},
+ DLD:{Mr.Amir, Mr.Shams, Dr.Mehwish}]
+
+tt2:
+[Algo:{Mr.Owais},
+ OOP:{Mr.Shehryar},
+ Pak Stds:{Mr.Ajmal, Ms.Gul, Ms.Memoona},
+ Islamiat:{Dr.Tayab, Ms.Sobia, Mr.Usman, Ms.Gul, Mr.Anas}]
+
+tt3:
+[OOP:{Dr.Ali, Mr.Shehryar, Ms.Hida, Mr.Shams},
+ DLD:{Mr.Amir, Mr.Shams, Dr.Mehwish},
+ Algo:{Mr.Owais},
+ Pak Stds:{Mr.Ajmal, Ms.Gul, Ms.Memoona},
+ Islamiat:{Dr.Tayab, Ms.Sobia, Mr.Usman, Ms.Gul, Mr.Anas}]
+
+t2:
+[OOP:{Dr.Ali, Mr.Shehryar, Ms.Hida, Mr.Shams},
+ DLD:{Mr.Amir, Mr.Shams, Dr.Mehwish},
+ Algo:{Mr.Owais},
+ Pak Stds:{Mr.Ajmal, Ms.Gul, Ms.Memoona},
+ Islamiat:{Dr.Tayab, Ms.Sobia, Mr.Usman, Ms.Gul, Mr.Anas}]
+
+tt4:
+[OOP:{Dr.Ali, Ms.Hida, Mr.Shams},
+ DLD:{Mr.Amir, Mr.Shams, Dr.Mehwish}]
+
+t3:
+[OOP:{Dr.Ali, Ms.Hida, Mr.Shams},
+ DLD:{Mr.Amir, Mr.Shams, Dr.Mehwish}]

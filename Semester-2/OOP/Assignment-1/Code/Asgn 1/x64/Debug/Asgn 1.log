@@ -1,0 +1,12 @@
+﻿  Submission.cpp
+D:\Documents\Semester-2\Assignments\OOP\Assignment 1\Code\Asgn 1\Submission.cpp(59,18): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+D:\Documents\Semester-2\Assignments\OOP\Assignment 1\Code\Asgn 1\Submission.cpp(82,21): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+D:\Documents\Semester-2\Assignments\OOP\Assignment 1\Code\Asgn 1\Submission.cpp(134,21): warning C4244: '=': conversion from 'float' to 'int', possible loss of data
+D:\Documents\Semester-2\Assignments\OOP\Assignment 1\Code\Asgn 1\Submission.cpp(212,31): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\Documents\Semester-2\Assignments\OOP\Assignment 1\Code\Asgn 1\Submission.cpp(216,31): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\Documents\Semester-2\Assignments\OOP\Assignment 1\Code\Asgn 1\Submission.cpp(221,13): warning C4244: '=': conversion from 'float' to 'int', possible loss of data
+D:\Documents\Semester-2\Assignments\OOP\Assignment 1\Code\Asgn 1\Submission.cpp(241,13): warning C4244: '=': conversion from 'float' to 'int', possible loss of data
+D:\Documents\Semester-2\Assignments\OOP\Assignment 1\Code\Asgn 1\Submission.cpp(271,21): warning C4244: '=': conversion from 'float' to 'int', possible loss of data
+D:\Documents\Semester-2\Assignments\OOP\Assignment 1\Code\Asgn 1\Submission.cpp(757,33): warning C4244: 'return': conversion from 'double' to 'float', possible loss of data
+D:\Documents\Semester-2\Assignments\OOP\Assignment 1\Code\Asgn 1\Submission.cpp(784): warning C4715: 'SearchCustomer': not all control paths return a value
+  Asgn 1.vcxproj -> D:\Documents\Semester-2\Assignments\OOP\Assignment 1\Code\Asgn 1\x64\Debug\Asgn 1.exe

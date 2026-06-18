@@ -1,0 +1,374 @@
+/*
+        Your Name: Muhammad Moiz Ansari
+        Your Roll#: 23i-0523
+        Your Section: BS(CS)-F
+        Assignment # 2
+*/
+
+#include <iostream>
+#include "23i-0523_F_Q1.h"
+using namespace std;
+
+Shop::Shop(const Shop& other)
+{
+    start = NULL;
+    Container* temp;
+
+    //Making new containers and giving them value:
+    for (temp = other.start; temp != NULL; temp = temp->link)
+    {
+        add_Container(temp->name, temp->containerno);
+    }
+}
+
+void Shop::add_Container(char* name, int containerindex)
+{
+    if (start == NULL)
+    {
+        start = new Container;
+        start->name = name;
+        start->containerno = containerindex;
+        start->link = NULL;
+    }
+    else
+    {
+        Container* temp = start;
+
+        while (temp->link != NULL)
+        {
+            temp = temp->link;
+        }
+
+        temp->link = new Container;
+        temp = temp->link;
+
+        temp->name = name;
+        temp->containerno = containerindex;
+        temp->link = NULL;
+
+        /*Container* newObj = new Container;
+
+        newObj->name = name;
+        newObj->containerno = containerindex;
+        newObj->link = NULL;
+
+        temp->link = newObj;
+
+        newObj = NULL;*/
+        temp = NULL;
+    }
+}
+
+void Shop::update_name_at_containerNumber(int containerindex, char* name)
+{
+    Container* temp = start;
+
+    while (1)
+    {
+        for (; temp != NULL; temp = temp->link)
+            if (temp->containerno == containerindex)
+                break;
+
+        if (temp != NULL)
+        {
+            temp->name = name;
+            temp = temp->link;
+        }
+        else
+            break;
+    }
+
+    temp = NULL;
+}
+
+void Shop::print_Shop()
+{
+    Container* temp = start;
+
+    if (temp != NULL)
+    {
+        do
+        {
+            cout << temp->name << "-" << temp->containerno << "\n";
+            temp = temp->link;
+
+        } while (temp != NULL);
+        temp = NULL;
+    }
+    else
+        cout << "";
+}
+
+//Deletes all containers at a container index:
+void Shop::delete_Chain(int containerindex)
+{
+    Container* f1 = NULL, * f2 = start, * f3 = NULL;
+
+    while (1)
+    {
+        f1 = NULL;
+        f2 = start;
+        f3 = NULL;
+        for (; f2 != NULL; f2 = f2->link)
+            if (f2->containerno == containerindex)
+                break;
+
+        if (f2 != NULL)
+        {
+            f2 = start;
+            while (f2->containerno != containerindex)
+            {
+                if (f2->link->containerno == containerindex)
+                {
+                    f1 = f2;
+                }
+                f2 = f2->link;
+            }
+            f3 = f2->link;
+
+            f2->link = NULL;
+            delete f2;
+            f2 = NULL;
+
+            if (f1 != NULL)
+            {
+                f1->link = f3;
+            }
+            else
+                start = f3;
+
+            f1 = NULL;
+            f3 = NULL;
+        }
+        else
+            break;
+    }
+}
+
+void Shop::Sort_Chain()
+{
+    Container* temp = start;
+    int size = 1;
+
+    //Size:
+    for (; temp->link != NULL; temp = temp->link, ++size);
+
+    //Array of container index:
+    int* arr = new int[size];
+
+    for (int i = 0; i < size; ++i)
+    {
+        arr[i] = 0;
+    }
+
+    temp = start;
+    for (int i = 0; temp != NULL; temp = temp->link, ++i)
+    {
+        arr[i] = temp->containerno;
+    }
+
+    //Bubble Sort:
+    for (int i = 0; i < size - 1; ++i)
+    {
+        for (int j = 0; j < size - 1 - i; ++j)
+        {
+            if (arr[j + 1] < arr[j])
+            {
+                int a = arr[j];
+                arr[j] = arr[j + 1];
+                arr[j + 1] = a;
+            }
+        }
+    }
+
+    Container** objc = new Container * [size];  //Container array for pointing containers
+
+    //Container array elements pointing to a single container:
+    for (int i = 0; i < size; ++i)
+    {
+        if (i == 0)
+            objc[i] = start;
+        else
+            objc[i] = objc[i - 1]->link;
+    }
+
+    Container* TEMP = new Container;
+
+    //Pointing start to containers in sequence:
+    int index = 0;
+    for (int i = 0; i < size; ++i)
+    {
+        for (; objc[index]->containerno != arr[i]; ++index);
+
+        if (i == 0)
+        {
+            start = objc[index];
+            TEMP = start;
+        }
+        else
+        {
+            start->link = objc[index];
+            start = start->link;
+        }
+        index = 0;
+    }
+    start->link = NULL;
+    start = TEMP;
+    TEMP = NULL;
+
+    for (int i = 0; i < size; ++i)
+        objc[i] = NULL;
+
+    delete[] objc;
+    objc = NULL;
+}
+
+
+void Shop::remove_Duplicate()
+{
+    Container* temp = start, * temp2 = NULL;
+    int size = 1;
+
+    for (; temp->link != NULL; temp = temp->link, ++size);
+    temp = start;
+
+    int* arr = new int[size],
+        * ch = new int[size];
+
+    for (int i = 0; i < size; ++i)
+    {
+        arr[i] = 0;
+        ch[i] = -1;
+    }
+
+    for (int i = 0; temp != NULL; temp = temp->link, ++i)
+    {
+        if (i == 0)
+            arr[i] = temp->containerno;
+        else
+            arr[i] = temp->containerno;
+    }
+
+    int t = 0,
+        ch_index = 0;
+    char* Name = NULL;
+    bool b = 0, dup = 0;
+    temp = start;
+    for (int i = 0; i < size; ++i, temp=temp->link)
+    {
+        if (arr[i] > 0)
+        {
+            temp2 = start;
+            b = 0;
+            dup = 0;
+            t = arr[i];
+            Name = temp->name;
+            for (int j = 0; j < size; ++j, temp2=temp2->link)
+            {
+                if (b == 1 && arr[j] == t && temp2->name == Name)
+                {
+                    ch[ch_index] = arr[j];
+                    arr[j] = -1;
+                    dup = 1;
+                }
+
+                if (!b && arr[j] == t && temp2->name == Name)
+                {
+                    b = 1;
+                }
+            }
+            if (dup)
+                ++ch_index;
+        }
+    }
+    for (int i = 0; i < size; ++i)
+    {
+        temp = start;
+        if (arr[i] < 0)
+        {
+            for (int j = 0; j < i; ++j)
+            {
+                temp = temp->link;
+            }
+            temp->containerno = -1;
+        }
+    }
+    delete_Chain(-1);
+
+    temp = NULL;
+    temp2 = NULL;
+    Name = NULL;
+}
+
+void Shop::findContainer(int containerindex)
+{
+    Container* temp = start;
+
+    for (; temp->containerno != containerindex && temp->link != NULL; temp = temp->link);
+
+    if (temp->link != NULL)
+        cout << temp->name << "\n";
+    else
+        cout << "";
+
+    temp = NULL;
+}
+
+void Shop::findContainer(int containerindex1, int containerindex2)
+{
+    Container* temp = start;
+
+    for (; temp != NULL; temp = temp->link)
+    {
+        if (temp->containerno >= containerindex1 && temp->containerno <= containerindex2)
+            cout << temp->name << "\n";
+    }
+    temp = NULL;
+}
+
+//Destructor:
+Shop::~Shop()
+{
+    Container* temp = start;
+
+    /*if (start != NULL)
+    {
+        while (temp != NULL)
+        {
+            while (temp->link != NULL)
+            {
+                temp = temp->link;
+            }
+            temp->link = NULL;
+            delete temp;
+            temp = NULL;
+
+            temp = start;
+        }
+    }*/
+
+    int size = 1;
+    while (temp->link != NULL)
+    {
+        temp = temp->link;
+        ++size;
+    }
+    temp = NULL;
+
+    Container** del = new Container * [size];
+
+    for (int i = 0; i < size; ++i)
+    {
+        if (i == 0)
+            del[i] = start;
+        else
+            del[i] = del[i - 1]->link;
+    }
+    for (int i = 0; i < size; ++i)
+    {
+        del[i]->link = NULL;
+        delete del[i];
+        del[i] = NULL;
+    }
+    delete[] del;
+}
