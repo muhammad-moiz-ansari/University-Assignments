@@ -1,0 +1,25 @@
+#------ Importing libraries ------
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+#------ Defining function ------
+def E(x, y):
+    return x**2 + y**2
+
+#------ x & y values ------
+x = np.linspace(-3, 3, 25)
+y = np.linspace(-3, 3, 25)
+X, Y = np.meshgrid(x, y)  # Generate meshgrid for X and Y
+
+#------ Calculate gradient ------
+dx, dy = np.gradient(E(X, Y), x, y)
+
+#------ Plotting gradient vector field ------
+plt.figure()
+plt.quiver(X, Y, dx, dy, scale=20)
+plt.xlabel('X')
+plt.ylabel('Y')
+plt.title('Q-10 (Gradient Vector Field)')
+
+plt.show()

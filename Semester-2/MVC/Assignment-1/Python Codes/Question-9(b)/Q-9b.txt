@@ -1,0 +1,27 @@
+#Impoting libraries:
+from sympy import Symbol, diff
+
+#Declaration:
+x = Symbol('x')
+y = Symbol('y')
+z = Symbol('z')
+f = x**3 + 2*x*y*z + (y**2)*z
+
+#Partial derivative of f w.r.t x:
+f_x = diff(f,x)
+
+#Partial derivative of f w.r.t y:
+f_y = diff(f,y)
+
+#Partial derivative of f w.r.t z:
+f_z = diff(f,z)
+
+#Printing result:
+print("Partial derivative of f w.r.t x:")
+print(f_x)
+print("")
+print("Partial derivative of f w.r.t y:")
+print(f_y)
+print("")
+print("Partial derivative of f w.r.t z:")
+print(f_z)

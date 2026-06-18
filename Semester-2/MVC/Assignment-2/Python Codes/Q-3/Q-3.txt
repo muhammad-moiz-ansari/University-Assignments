@@ -1,0 +1,29 @@
+#------ Importing libraries ------
+import numpy as np
+import matplotlib.pyplot as plt
+import math
+from mpl_toolkits.mplot3d import Axes3D
+
+#------ Defining function ------
+def E(x, y, z):
+    return np.sin(np.pi * x) * np.cos(np.pi * y)  # Use numpy functions for element-wise operations
+
+#------ x & y values ------
+x = np.linspace(0, 0.25, 100)
+y = np.linspace(0.25, 0.5, 100)
+X, Y = np.meshgrid(x, y)  # Generate meshgrid for X and Y
+
+Z = E(X, Y, 0)  # Calculate Z values using the function E
+
+#------ Plotting surface ------
+figure = plt.figure()
+graph = figure.add_subplot(111, projection='3d')
+graph.plot_surface(X, Y, Z, cmap='cividis')
+
+#------ Labelling ------
+graph.set_xlabel('X')
+graph.set_ylabel('Y')
+graph.set_zlabel('Z')
+graph.set_title('Question - 3')
+
+plt.show()

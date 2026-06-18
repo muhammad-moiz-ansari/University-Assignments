@@ -1,0 +1,8 @@
+Partial derivative of f w.r.t x:
+3*x**2 + 2*y*z
+
+Partial derivative of f w.r.t y:
+2*x*z + 2*y*z
+
+Partial derivative of f w.r.t z:
+2*x*y + y**2

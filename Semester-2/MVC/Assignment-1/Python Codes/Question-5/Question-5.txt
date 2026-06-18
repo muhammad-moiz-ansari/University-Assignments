@@ -1,0 +1,31 @@
+#------ Importing libraries ------
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+#------ Defining function ------
+def E(x, y, z):
+ return 3 / np.sqrt(y**2 + z**2)
+ 
+#------ x & y values ------
+y = np.linspace(-6, 6, 100)
+z = np.linspace(-6, 6, 100)
+Y, Z = np.meshgrid(y, z)
+X = np.zeros_like(Y)
+
+Z = E(X, Y, Z)
+
+#------ Plotting surface ------
+figure = plt.figure()
+graph = figure.add_subplot(111, projection='3d')
+graph.plot_surface(X, Y, Z, cmap = 'cividis')
+
+lvl_val = 0
+
+#------ Labelling ------
+graph.set_xlabel('X')
+graph.set_ylabel('Y')
+graph.set_zlabel('Z')
+graph.set_title('Question - 5')
+
+plt.show()

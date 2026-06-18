@@ -1,0 +1,29 @@
+#Impoting libraries:
+import numpy as np
+import matplotlib.pyplot as plt
+
+#Function definition:
+def T(x, y):
+  return 60 - 2*x**2 - 3*y**2
+
+#Creating grids of points:
+x_minimum, x_maximum = 8, -8 #Domain of x
+y_minimum, y_maximum = 8, -8 #Domain of y
+n_x = 100 
+n_y = 100
+x, y = np.linspace(x_minimum, x_maximum, n_x), np.linspace(y_minimum, y_maximum, n_y)
+X, Y = np.meshgrid(x, y)
+
+Z = T(X, Y)
+
+lvls = [0, 6, 48, 54, 60]
+
+#Drawing the plot contour
+plt.contour(X, Y, Z, levels = lvls, cmap = 'terrain')
+
+#Labelling and showing graph
+plt.xlabel('x')
+plt.ylabel('y')
+plt.title('Question - 18')
+plt.grid(True)
+plt.show()

@@ -1,0 +1,29 @@
+from sympy import symbols, integrate
+
+x, y, z = symbols('x y z')
+
+# Function definition
+expr = x**2 + y**2 + z**2
+
+# x limits
+a = 0
+b = (12 - 3*y - 4*z) / 2
+
+# y limits
+c = 0
+d = (12 - 4*z) / 3
+
+# z limits
+e = 0
+f = (12) / 4
+
+# Integration
+in_1 = integrate(expr, (x, a, b))  # integrate wrt x
+in_2 = integrate(in_1, (y, c, d))  # integrate wrt y
+in_3 = integrate(in_2, (z, e, f))  # integrate wrt z
+
+# Simplifying result
+result = in_3.evalf()
+
+# Printing
+print("Result =", result)

@@ -1,0 +1,29 @@
+from sympy import symbols, integrate, exp, Abs
+
+x, y = symbols('x y')
+
+# Function definition
+expr = (10000 * exp(y)) / (1 + Abs(x) / 2)
+
+# x limits
+a = -5
+b = 5
+
+# y limits
+c = -2
+d = 0
+
+# Integration
+in_1 = integrate(expr, (x, a, b))  # integrate wrt x
+in_2 = integrate(in_1, (y, c, d))  # integrate wrt y
+
+# Simplifying result
+result = in_2.evalf()
+
+# Printing
+print("Result =", result)
+
+
+
+
+Result = 43328.7974930283

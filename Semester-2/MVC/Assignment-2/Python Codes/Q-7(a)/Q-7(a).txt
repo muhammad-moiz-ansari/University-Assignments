@@ -1,0 +1,44 @@
+#------ Importing libraries ------
+import numpy as np
+import matplotlib.pyplot as plt
+import math
+from mpl_toolkits.mplot3d import Axes3D
+
+#------ Defining functions ------
+def E1(x, y, z):
+    return pow(x, 2) + pow(y, 2)
+
+def E2(x, y, z):
+    return 3 * pow(x, 2) + 2 * pow(y, 2) + pow(z, 2)
+
+#------ x & y values ------
+x = np.linspace(-10, 10, 100)
+y = np.linspace(-10, 10, 100)
+X, Y = np.meshgrid(x, y)
+
+#------ Calculate Z values for both functions ------
+Z1 = E1(X, Y, 0)
+Z2 = E2(X, Y, 0)
+
+#------ Plotting surface ------
+figure = plt.figure()
+graph = figure.add_subplot(111, projection='3d')
+
+#------ Plotting surface for first function ------
+surf1 = graph.plot_surface(X, Y, Z1, cmap='cividis')
+
+#------ Plotting surface for second function ------
+surf2 = graph.plot_surface(X, Y, Z2, cmap='viridis')
+
+#------ Labelling ------
+graph.set_xlabel('X')
+graph.set_ylabel('Y')
+graph.set_zlabel('Z')
+graph.set_title('Question - 7(a)')
+
+#------ Creating a 2D plot for the legend ------
+d1 = plt.Line2D([0], [0], linestyle="none", marker='o', markersize=10, markerfacecolor='orange')
+d2 = plt.Line2D([0], [0], linestyle="none", marker='o', markersize=10, markerfacecolor='blue')
+plt.legend([d1, d2], ['Function 1', 'Function 2'])
+
+plt.show()

@@ -1,0 +1,52 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+# Objective function
+def f(x1, x2, x3):
+    return (x1 - 4)**4 + (x2 - 3)**2 + 4*(x3 + 5)**4
+
+# Gradient of the objective function
+def gradient_f(x1, x2, x3):
+    return np.array([4*(x1 - 4)**3, 2*(x2 - 3), 16*(x3 + 5)**3])
+
+# Steepest descent method
+def steepest_descent(x, alpha, iterations):
+    path = [x]
+    for i in range(iterations):
+        x = x - alpha * gradient_f(*x)
+        path.append(x)
+    return np.array(path)
+
+# Initial point and parameters
+initial_point = np.array([4, 2, -1])
+alpha = 0.1
+iterations = 3
+
+# Perform steepest descent method
+path = steepest_descent(initial_point, alpha, iterations)
+
+# Plotting the objective function
+fig = plt.figure(figsize=(10, 8))
+ax = fig.add_subplot(111, projection='3d')
+
+# Generate grid points
+x1_vals = np.linspace(0, 8, 100)
+x2_vals = np.linspace(0, 6, 100)
+x1_vals, x2_vals = np.meshgrid(x1_vals, x2_vals)
+x3_vals = np.linspace(-6, 0, 100)
+z_vals = f(x1_vals, x2_vals, x3_vals)
+
+# Plot objective function surface
+ax.plot_surface(x1_vals, x2_vals, z_vals, cmap='viridis', alpha=0.7)
+
+# Plot path taken by steepest descent method
+path = np.array(path)
+ax.plot(path[:, 0], path[:, 1], path[:, 2], marker='o', color='red', label='Steepest Descent Path')
+
+ax.set_xlabel('x1')
+ax.set_ylabel('x2')
+ax.set_zlabel('f(x1, x2, x3)')
+ax.set_title('Objective Function and Steepest Descent Path')
+ax.legend()
+plt.show()

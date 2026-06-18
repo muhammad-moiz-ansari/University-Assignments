@@ -1,0 +1,20 @@
+#Impoting libraries:
+from sympy import Symbol, diff, exp, cos
+
+#Declaration:
+x = Symbol('x')
+y = Symbol('y')
+f = exp(x*y) * cos(x+y)
+
+#Partial derivative of f w.r.t x:
+f_x = diff(f,x)
+
+#Partial derivative of f w.r.t y:
+f_y = diff(f,y)
+
+#Printing result:
+print("Partial derivative of f w.r.t x:")
+print(f_x)
+print("")
+print("Partial derivative of f w.r.t y:")
+print(f_y)

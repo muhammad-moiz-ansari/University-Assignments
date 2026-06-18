@@ -1,0 +1,5 @@
+Partial derivative of f w.r.t x:
+y*exp(x*y)*cos(x + y) - exp(x*y)*sin(x + y)
+
+Partial derivative of f w.r.t y:
+x*exp(x*y)*cos(x + y) - exp(x*y)*sin(x + y)
