@@ -1,0 +1,35 @@
+body
+{
+	background-color: lightyellow;
+}
+h2
+{
+	background-color: lightblue;
+}
+U
+{
+	color:darkblue;
+}
+body
+{
+  margin-top: 20px;
+  margin-bottom: 20px;
+  margin-right: 20px;
+  margin-left: 20px;
+}
+.header
+{
+	background-color: light blue;
+	color: black;
+	border: 2px solid black;
+	margin: 0px;
+	padding: 20px;
+}
+.info
+{
+	background-color: light blue;
+	color: black;
+	border: 1.5px solid black;
+	margin: 0px;
+	padding: 20px;
+}
