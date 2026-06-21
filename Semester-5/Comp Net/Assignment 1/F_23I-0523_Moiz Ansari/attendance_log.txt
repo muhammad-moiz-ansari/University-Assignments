@@ -1,0 +1,72 @@
+Name: Moiz
+Arrival Time: 08:25
+Location: D-300
+Temperature: 25.0C
+Service Required: AC on
+
+--------------------------------------
+
+Name: Raahim
+Arrival Time: 08:30
+Location: D-300
+Temperature: 20.0C
+Service Required: AC high
+
+--------------------------------------
+
+Name: Abdullah
+Arrival Time: 08:35
+Location: D-300
+Temperature: 23.0C
+Service Required: AC low
+
+--------------------------------------
+
+Name: Daniyal
+Arrival Time: 08:36
+Location: D-300
+Temperature: 29.0C
+Service Required: AC LOWW!
+
+--------------------------------------
+
+Name: Ali
+Arrival Time: 08:40
+Location: D-300
+Temperature: 30.0C
+Service Required: AC off, Fan on
+
+--------------------------------------
+
+Name: Moiz
+Arrival Time: 08:30
+Location: D-300
+Temperature: 25.0C
+Service Required: AC on
+
+--------------------------------------
+
+Name: Ali
+Arrival Time: 08:29
+Location: D-311
+Temperature: 30.0C
+Service Required: Fan on
+
+--------------------------------------
+
+Name: Daniyal
+Arrival Time: 09:00
+Location: D-Block
+Temperature: 30.0C
+Service Required: All AC off
+
+--------------------------------------
+
+Name: Moiz123
+Arrival Time: 08:59
+Location: D-300
+Temperature: 23.0C
+Service Required: ac on
+
+--------------------------------------
+
