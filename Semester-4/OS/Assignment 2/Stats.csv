@@ -1,0 +1,9 @@
+﻿PlayerID,Name,Batting_Avg,Strike_Rate,Bowling_Avg,Economy_Rate,Performance,Current_Form_Index,Playing_Role
+1,Babar_Azam,42.77,54.37,21,2.8,43.24,0.6,Batter
+2,Shaheen_Afridi,7.96,80,25.08,3,23.15,0.4,Bowler
+3,Rashid_Khan,17.66,70.66,22.2,2.8,19.05,0.5,Bowler
+4,Virat_Kohli,48.85,55,30.25,3.1,44.55,0.7,Batter
+5,Daren_Sammy,21.68,64.67,35.79,3.56,27.47,0.8,All-Rounder
+6,Imran_Khan,37.69,55.4,22.81,2.54,46.25,0.9,All-Rounder
+7,Wasim_Akram,22.64,47.9,23.62,2.59,15.5,0.8,Bowler
+8,Shoaib_Akhtar,10.07,57.36,25.69,3.37,7.95,0.7,Bowler

@@ -1,0 +1,15 @@
+
+
+Option 01 selected at 26-02-2025 19:26:22
+File name: file1.txt
+Permissions of file1.txt: -rwxrwxrwx  2025-02-11 23:04:59.284081533 +0500
+Permissions changed!
+Updated Permissions of file1.txt: ----------  2025-02-11 23:04:59.284081533 +0500
+
+Option 04 selected at 26-02-2025 19:26:30
+File name: 0file3.txt
+Current Modified Date: 2022-06-20 15:46:04.000000000 +0500
+Modified Time updated!
+
+Option exit 
+Script terminated at  26-02-2025  19:26:39

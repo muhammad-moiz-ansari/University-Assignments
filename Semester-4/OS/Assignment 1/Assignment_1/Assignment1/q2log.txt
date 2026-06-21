@@ -1,0 +1,36 @@
+
+
+Option 01 selected at 03-03-2025 14:42:42
+File name: 1.txt
+Permissions of 1.txt: -rwxrwxrwx  2025-02-11 20:41:07.860096522 +0500
+Permissions changed!
+Updated Permissions of 1.txt: ----------  2025-02-11 20:41:07.860096522 +0500
+
+Option 02 selected at 03-03-2025 14:42:53
+
+Option 02 selected at 03-03-2025 14:43:04
+File name: 1.txt
+String: c.t
+String found in following lines:
+3:this is cat text
+4:this is cpt  text
+5:this is cot  text
+6:this is cott  text
+7:this is acat pet
+8:this is sdcatsd no
+9:this is aksjdcotsad yes
+10:this is cat,cat.cat ohh
+11:this is c.t hehe
+
+Option 03 selected at 03-03-2025 14:43:43
+Files at even location: 2.txt, 4.txt, 6.txt, 8.txt 
+Files at odd location: 1.txt, 3.txt, 5.txt, 7.txt
+Dummy.txt is created and 5 lines if each file copied in it.
+
+Option 04 selected at 03-03-2025 14:44:27
+File name: 1.txt
+Current Modified Date: 2025-02-11 20:41:07.860096522 +0500
+Modified Time updated!
+
+Option exit 
+Script terminated at  03-03-2025  14:44:39

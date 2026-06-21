@@ -1,0 +1,7 @@
+
+App Usage Time:
+1.txt (~/Assignment1/Q2files) - gedit: 2 seconds
+Ubuntu Terminal: 19 seconds
+Instagram - Google Chrome: 12 seconds
+New Tab - Google Chrome: 4 seconds
+Q1.sh (~/Assignments/Assignment_1/F_23i-0523_Moiz Ansari) - gedit: 2 seconds

@@ -1,0 +1,20 @@
+Task: Reverse
+Process ID: 19640
+Result: irasna ziom
+
+Task: Add 2 in ASCII
+Process ID: 19641
+Result: oqk|"cpuctk
+
+Task: Find Length
+Process ID: 19642
+Result: 11
+
+Task: Sort
+Process ID: 19643
+Result:  aaiimnorsz
+
+Task: Capitalize
+Process ID: 19644
+Result: MOIZ ANSARI
+
