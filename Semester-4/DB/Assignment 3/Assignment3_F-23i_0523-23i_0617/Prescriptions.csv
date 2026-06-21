@@ -1,0 +1,6 @@
+prescription_id,appointment_id,doctor_id,patient_id,medication,dosage,instructions,date_issued
+401,301,201,101,Aspirin 100mg,1 tablet twice daily,After meals,2025-05-01
+402,302,202,102,Ibuprofen 200mg,1 tablet every 8 hours,With water,2025-05-02
+403,304,201,104,Diagnosis Pending,N/A,N/A,2025-05-01
+404,308,203,108,Diagnosis Pending,N/A,N/A,2025-05-04
+405,316,207,116,Diagnosis Pending,N/A,N/A,2025-05-08

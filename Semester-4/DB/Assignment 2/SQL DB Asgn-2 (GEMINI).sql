@@ -1,0 +1,780 @@
+Create Database Brazil_database
+Use Brazil_database
+
+----------------------------------------------------------------------------------
+---------------------------------             ------------------------------------
+-------------------------------  TABLES CREATE  ----------------------------------
+---------------------------------             ------------------------------------
+----------------------------------------------------------------------------------
+
+Create Table customers(
+	customer_id varchar(40) PRIMARY KEY NOT NULL,
+	customer_unique_id varchar(40) NOT NULL,
+	customer_zip_code_prefix int NOT NULL,
+	customer_city varchar(50) NOT NULL,
+	customer_state varchar(3) NOT NULL,
+	Foreign key (customer_zip_code_prefix) references geolocation(zip_code)
+);
+
+Create Table orders(
+	order_id varchar(40) Primary Key Not Null,
+	customer_id varchar(40) Not NULL,
+	order_status varchar(20) NOT NULL,		-- created, shipped, canceled, approved, processing, unavailable, delivered, invoiced
+	order_purchase_timestamp DateTime Not NUll,
+	order_approved_at DateTime NUll,
+	order_delivered_carrier_date DateTime NUll,
+	order_delivered_customer_date DateTime null,
+	order_estimated_delivery_date DateTime not null,
+	Foreign Key (customer_id) references customers(customer_id)
+);
+
+Create Table order_reviews(
+	review_id varchar(40) Not Null,
+	order_id varchar(40) Not Null,
+	review_score int not null,
+	review_comment_title varchar(500) null,
+	review_comment_message varchar(500) null,
+	review_creation_date DateTime not null,
+	review_answer_timestamp DateTime not null,
+	Foreign Key (order_id) references orders(order_id),
+	Primary Key(review_id,order_id)
+);
+
+Create Table order_payment(
+	order_id varchar(40) Not Null,
+	payment_sequential int not null,
+	payment_type varchar(100) not null,
+	payment_installments int not null,
+	payment_value decimal(10,3) not null,
+	Foreign Key (order_id) references orders(order_id),
+	primary key(order_id,payment_sequential)
+);
+
+Create Table products(
+	product_id varchar(40) Primary Key Not Null,
+	product_category_name varchar(100) Null,
+	product_name_lenght int Null,
+	product_description_lenght int Null,
+	product_photos_qty int Null,
+	product_weight_g int Null,
+	product_length_cm int Null,
+	product_height_cm int Null,
+	product_width_cm int Null
+);
+
+Create Table sellers(
+	seller_id varchar(40) Primary Key Not Null,
+	seller_zip_code_prefix int Not Null,
+	seller_city varchar(100) Not Null,
+	seller_state varchar(3) Not Null,
+	Foreign key (seller_zip_code_prefix) references geolocation(zip_code)
+);
+
+Create Table order_items(
+	order_id varchar(40) Not Null,
+	order_item_id int not null,
+	product_id varchar(40) Not Null,
+	seller_id varchar(40) Not Null,
+	shipping_limit_date DateTime Not Null,
+	price decimal(10,3) not null,
+	freight_value decimal(10,3) not null,
+	Foreign Key (order_id) references orders(order_id),
+	Foreign Key (product_id) references products(product_id),
+	Foreign Key (seller_id) references sellers(seller_id)
+    Primary Key (order_id, order_item_id)
+);
+
+Create Table geolocation(
+	geolocation_zip_code_prefix int not null,
+	geolocation_lat varchar(50) not null,
+	geolocation_lng decimal(20,15) not null,
+	geolocation_city varchar(50) not null,
+	geolocation_state varchar(3) not null,
+	zip_code int Identity(1,1) Primary key
+);
+
+Alter table customers add zip_code int
+Alter table sellers add zip_code int
+
+UPDATE c
+SET c.zip_code = g.zip_code
+FROM customers c
+JOIN geolocation g ON c.customer_zip_code_prefix = g.geolocation_zip_code_prefix
+
+UPDATE s
+SET s.zip_code = g.zip_code
+FROM sellers s
+JOIN geolocation g ON s.seller_zip_code_prefix = g.geolocation_zip_code_prefix
+
+ALTER TABLE customers ADD CONSTRAINT FK_customers_geolocation FOREIGN KEY (zip_code) REFERENCES geolocation(zip_code)
+
+ALTER TABLE sellers ADD CONSTRAINT FK_sellers_geolocation FOREIGN KEY (zip_code) REFERENCES geolocation(zip_code)
+
+----------------------------------------------------------------------------------
+----------------------------------------------------------------------------------
+---------------------------------- DATA LOAD -------------------------------------
+----------------------------------------------------------------------------------
+----------------------------------------------------------------------------------
+
+BULK INSERT customers FROM 'D:\Documents\Semester-4\1. DB\Assignments\Assignment 2\Brazilian_Dataset\olist_customers_dataset.csv'
+WITH(
+	format='CSV',
+	FirstRow=2,
+	FIELDTERMINATOR=',',
+	ROWTERMINATOR='0x0a'
+);
+
+BULK INSERT orders FROM 'D:\Documents\Semester-4\1. DB\Assignments\Assignment 2\Brazilian_Dataset\olist_orders_dataset.csv'
+WITH(
+	format='CSV',
+	FirstRow=2,
+	FIELDTERMINATOR=',',
+	ROWTERMINATOR='0x0a'
+);
+
+BULK INSERT order_reviews FROM 'D:\Documents\Semester-4\1. DB\Assignments\Assignment 2\Brazilian_Dataset\olist_order_reviews_dataset.csv'
+WITH(
+	format='CSV',
+	FirstRow=2,
+	FIELDTERMINATOR=',',
+	ROWTERMINATOR='0x0D0a',
+	TABLOCK
+);
+
+BULK INSERT order_payment FROM 'D:\Documents\Semester-4\1. DB\Assignments\Assignment 2\Brazilian_Dataset\olist_order_payments_dataset.csv'
+WITH(
+	format='CSV',
+	FirstRow=2,
+	FIELDTERMINATOR=',',
+	ROWTERMINATOR='0x0a',
+	TABLOCK
+);
+
+BULK INSERT products FROM 'D:\Documents\Semester-4\1. DB\Assignments\Assignment 2\Brazilian_Dataset\olist_products_dataset.csv'
+WITH(
+	format='CSV',
+	FirstRow=2,
+	FIELDTERMINATOR=',',
+	ROWTERMINATOR='0x0a',
+	TABLOCK
+);
+
+BULK INSERT sellers FROM 'D:\Documents\Semester-4\1. DB\Assignments\Assignment 2\Brazilian_Dataset\olist_sellers_dataset.csv'
+WITH(
+	format='CSV',
+	FirstRow=2,
+	FIELDTERMINATOR=',',
+	ROWTERMINATOR='0x0a',
+	TABLOCK
+);
+
+BULK INSERT order_items FROM 'D:\Documents\Semester-4\1. DB\Assignments\Assignment 2\Brazilian_Dataset\olist_order_items_dataset.csv'
+WITH(
+	format='CSV',
+	FirstRow=2,
+	FIELDTERMINATOR=',',
+	ROWTERMINATOR='0x0a',
+	TABLOCK
+);
+
+BULK INSERT geolocation FROM 'D:\Documents\Semester-4\1. DB\Assignments\Assignment 2\Brazilian_Dataset\olist_geolocation_dataset.csv'
+WITH(
+	format='CSV',
+	FirstRow=2,
+	FIELDTERMINATOR=',',
+	ROWTERMINATOR='0x0a',
+	TABLOCK
+);
+
+---------------------------------------------------------------------------
+-----------------------                             -----------------------
+--------------------            SQL QUERIES            --------------------
+-----------------------                             -----------------------
+---------------------------------------------------------------------------
+
+---------------------------------------------------------------------------
+----------------------------- ORDER ANALYSIS ------------------------------
+---------------------------------------------------------------------------
+
+
+--The corrected queries are designed to be more efficient and readable, primarily by replacing complex subqueries in `HAVING` clauses with `TOP` clauses or window functions, and by combining multiple queries into a single, more comprehensive one.
+
+
+
+--## Order Analysis
+
+---
+
+--#### a. Percentage of orders that got delayed beyond the estimated date
+--**Your Query:** Correct.
+--```sql
+select CAST(COUNT(*) AS FLOAT)/(Select Count(order_id) from orders) * 100 as Percentages
+from orders
+where order_estimated_delivery_date < order_delivered_customer_date and order_delivered_customer_date is not null
+
+
+---
+
+#### b. What are the peak months of order delays?
+**Your Query:** Incorrect (Overly complex).
+**Corrected Query:**
+This version is simpler and more direct, achieving the same result more efficiently.
+```sql
+SELECT TOP 1
+    MONTH(order_delivered_customer_date) AS [Peak Month],
+    COUNT(*) AS [No. of Orders Delayed]
+FROM orders
+WHERE order_delivered_customer_date > order_estimated_delivery_date
+GROUP BY MONTH(order_delivered_customer_date)
+ORDER BY [No. of Orders Delayed] DESC;
+```
+
+---
+
+#### c. Which state experiences the highest order delays?
+**Your Query:** Incorrect (Overly complex).
+**Corrected Query:**
+Using `TOP 1` with `ORDER BY` is much more efficient than using a `HAVING` clause with a subquery to find the maximum.
+```sql
+
+SELECT TOP 1
+    c.customer_state,
+    COUNT(*) AS delays
+FROM customers c
+INNER JOIN orders o ON c.customer_id = o.customer_id
+WHERE o.order_delivered_customer_date > o.order_estimated_delivery_date
+GROUP BY c.customer_state
+ORDER BY delays DESC;
+```
+
+---
+
+#### d. See how many orders are still in “pending” status for each year
+**Your Query:** Correct.
+```sql
+SELECT
+    YEAR(o.order_purchase_timestamp) AS Year,
+    COUNT(*) AS [Pending Orders]
+FROM orders o
+WHERE order_status IN ('created', 'approved', 'processing', 'invoiced')
+GROUP BY YEAR(o.order_purchase_timestamp);
+```
+
+---
+
+#### e. What is the average delay duration per seller?
+**Your Query:** Correct, but can be slightly improved for clarity.
+**Corrected Query:**
+Using `AVG` is more direct than `SUM/COUNT`.
+```sql
+SELECT
+    s.seller_id,
+    AVG(CAST(DATEDIFF(DAY, o.order_estimated_delivery_date, o.order_delivered_customer_date) AS FLOAT)) AS average_delay_duration
+FROM sellers s
+INNER JOIN order_items oi ON oi.seller_id = s.seller_id
+INNER JOIN orders o ON o.order_id = oi.order_id
+WHERE o.order_delivered_customer_date > o.order_estimated_delivery_date
+GROUP BY s.seller_id
+ORDER BY average_delay_duration DESC;
+```
+
+---
+
+#### f. How do shipping costs impact order delays? Find the average shipping cost for delayed and on-time orders.
+**Your Query:** Correct, but can be combined into one query.
+**Corrected Query:**
+This single query allows for easier comparison.
+```sql
+SELECT
+    'Delayed' AS delivery_status,
+    AVG(oi.freight_value) AS avg_shipping_cost
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+WHERE o.order_delivered_customer_date > o.order_estimated_delivery_date
+UNION ALL
+SELECT
+    'On-Time' AS delivery_status,
+    AVG(oi.freight_value) AS avg_shipping_cost
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+WHERE o.order_delivered_customer_date <= o.order_estimated_delivery_date;
+```
+
+---
+
+#### g. Which product category experience the most order delays?
+**Your Query:** Incorrect (Overly complex).
+**Corrected Query:**
+A simple `TOP 1` with `ORDER BY` is the standard way to find a maximum value.
+```sql
+SELECT TOP 1
+    p.product_category_name,
+    COUNT(*) AS delayed_orders
+FROM order_items oi
+INNER JOIN products p ON p.product_id = oi.product_id
+INNER JOIN orders o ON o.order_id = oi.order_id
+WHERE o.order_delivered_customer_date > o.order_estimated_delivery_date AND p.product_category_name IS NOT NULL
+GROUP BY p.product_category_name
+ORDER BY delayed_orders DESC;
+```
+
+---
+
+#### h. How do number of items per order affect the delays? Find the average number of items for delayed and on time orders.
+**Your Query:** Correct, but can be combined.
+**Corrected Query:**
+This combines two separate queries into one for better readability and comparison.
+```sql
+SELECT
+    'Delayed' AS delivery_status,
+    AVG(CAST(item_counts.num_items AS FLOAT)) AS avg_num_items
+FROM orders o
+JOIN (
+    SELECT order_id, COUNT(order_item_id) AS num_items
+    FROM order_items
+    GROUP BY order_id
+) AS item_counts ON o.order_id = item_counts.order_id
+WHERE o.order_delivered_customer_date > o.order_estimated_delivery_date
+UNION ALL
+SELECT
+    'On-Time' AS delivery_status,
+    AVG(CAST(item_counts.num_items AS FLOAT)) AS avg_num_items
+FROM orders o
+JOIN (
+    SELECT order_id, COUNT(order_item_id) AS num_items
+    FROM order_items
+    GROUP BY order_id
+) AS item_counts ON o.order_id = item_counts.order_id
+WHERE o.order_delivered_customer_date <= o.order_estimated_delivery_date;
+```
+
+***
+
+## Customer Analysis
+
+---
+
+#### a. What percentage of customers have made only one order?
+**Your Query:** Incorrect.
+**Corrected Query:**
+This query first finds all unique customers who have made exactly one order, counts them, and then calculates the percentage against the total number of unique customers.
+```sql
+SELECT (CAST(COUNT(single_order_customers.customer_unique_id) AS FLOAT) * 100 / (SELECT COUNT(DISTINCT customer_unique_id) FROM customers)) AS percentage_single_order_customers
+FROM (
+    SELECT c.customer_unique_id
+    FROM customers c
+    JOIN orders o ON c.customer_id = o.customer_id
+    GROUP BY c.customer_unique_id
+    HAVING COUNT(o.order_id) = 1
+) AS single_order_customers;
+```
+
+---
+
+#### b. Find the top five cities with the most repeat customers
+**Your Query:** Incorrect.
+**Corrected Query:**
+This query first identifies customers with more than one order (`repeat_customers`), then groups them by city and counts them.
+```sql
+SELECT TOP 5
+    repeat_customers.customer_city,
+    COUNT(repeat_customers.customer_unique_id) AS number_of_repeat_customers
+FROM (
+    SELECT
+        c.customer_unique_id,
+        c.customer_city
+    FROM customers c
+    JOIN orders o ON c.customer_id = o.customer_id
+    GROUP BY c.customer_unique_id, c.customer_city
+    HAVING COUNT(o.order_id) > 1
+) AS repeat_customers
+GROUP BY repeat_customers.customer_city
+ORDER BY number_of_repeat_customers DESC;
+```
+
+---
+
+#### c. Calculate the average order price of customers for each state
+**Your Query:** Incorrect (Calculates average item price, not order price).
+**Corrected Query:**
+This query first calculates the total price for each order in a subquery, and then calculates the average of those order totals for each state.
+```sql
+SELECT
+    c.customer_state,
+    AVG(order_totals.total_price) AS avg_order_price
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN (
+    SELECT order_id, SUM(price) AS total_price
+    FROM order_items
+    GROUP BY order_id
+) AS order_totals ON o.order_id = order_totals.order_id
+GROUP BY c.customer_state
+ORDER BY avg_order_price DESC;
+```
+
+---
+
+#### d. Find the top ten customers with the highest number of orders placed.
+**Your Query:** Correct.
+```sql
+SELECT TOP 10
+    c.customer_unique_id,
+    COUNT(*) AS [Orders Placed]
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+GROUP BY c.customer_unique_id
+ORDER BY COUNT(*) DESC;
+```
+
+---
+
+#### e. Which customers have the longest average delivery time
+**Your Query:** Correct (shows all customers), but the question implies finding the top ones.
+**Corrected Query:**
+Added `TOP 1 WITH TIES` to find the customer(s) with the absolute longest average delivery time.
+```sql
+SELECT TOP 1 WITH TIES
+    c.customer_unique_id,
+    AVG(CAST(DATEDIFF(DAY, o.order_purchase_timestamp, o.order_delivered_customer_date) AS FLOAT)) AS avg_delivery_days
+FROM customers c
+INNER JOIN orders o ON c.customer_id = o.customer_id
+WHERE o.order_delivered_customer_date IS NOT NULL
+GROUP BY c.customer_unique_id
+ORDER BY avg_delivery_days DESC;
+```
+
+---
+
+#### f. How does customer order frequency change over time?
+**Your Query:** Correct.
+```sql
+SELECT
+    orders_per_customer.year,
+    AVG(CAST(orders_per_customer.orders_placed AS FLOAT)) AS [Avg Orders Placed per Customer per Year]
+FROM (
+    SELECT
+        YEAR(o.order_purchase_timestamp) AS year,
+        c.customer_unique_id,
+        COUNT(o.order_id) AS orders_placed
+    FROM customers c
+    JOIN orders o ON c.customer_id = o.customer_id
+    GROUP BY c.customer_unique_id, YEAR(o.order_purchase_timestamp)
+) AS orders_per_customer
+GROUP BY orders_per_customer.year
+ORDER BY orders_per_customer.year;
+```
+
+---
+
+#### g. Which top 5 customers have spent the most money in year 2017
+**Your Query:** Correct.
+```sql
+SELECT TOP 5
+    c.customer_unique_id,
+    SUM(op.payment_value) as amountspent
+FROM customers c
+INNER JOIN orders o on o.customer_id=c.customer_id
+INNER JOIN order_payment op on op.order_id=o.order_id
+WHERE DATEPART(YEAR, o.order_purchase_timestamp) = 2017
+GROUP BY c.customer_unique_id
+ORDER BY amountspent DESC;
+```
+
+---
+
+#### h. Which customers have the highest order cancellations
+**Your Query:** Incorrect (Overly complex).
+**Corrected Query:**
+Using `TOP 1 WITH TIES` simplifies the query significantly.
+```sql
+SELECT TOP 1 WITH TIES
+    c.customer_unique_id,
+    COUNT(o.order_id) AS orders_cancelled
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+WHERE o.order_status = 'canceled'
+GROUP BY c.customer_unique_id
+ORDER BY orders_cancelled DESC;
+```
+
+***
+
+## Product Analysis
+
+---
+
+#### a. What is the most profitable product category per state?
+**Your Query:** Incorrect (Uses an inefficient correlated subquery and calculates revenue, not profit).
+**Corrected Query:**
+This query uses a modern window function (`ROW_NUMBER`) which is much more efficient for this type of "top N per group" problem. It calculates total revenue (`SUM(price)`), as profit cannot be determined from the schema.
+```sql
+SELECT
+    customer_state,
+    product_category_name,
+    total_revenue
+FROM (
+    SELECT
+        c.customer_state,
+        p.product_category_name,
+        SUM(oi.price) AS total_revenue,
+        ROW_NUMBER() OVER(PARTITION BY c.customer_state ORDER BY SUM(oi.price) DESC) as rn
+    FROM customers c
+    JOIN orders o ON c.customer_id = o.customer_id
+    JOIN order_items oi ON o.order_id = oi.order_id
+    JOIN products p ON oi.product_id = p.product_id
+    WHERE p.product_category_name IS NOT NULL
+    GROUP BY c.customer_state, p.product_category_name
+) AS ranked_categories
+WHERE rn = 1
+ORDER BY customer_state;
+```
+
+---
+
+#### b. What are the peak hours for order placements per product category?
+**Your Query:** Incorrect (Overly complex).
+**Corrected Query:**
+This is another ideal use case for a window function to find the peak hour for each category efficiently.
+```sql
+SELECT
+    product_category_name,
+    hour_order_placed,
+    orders_placed
+FROM (
+    SELECT
+        p.product_category_name,
+        DATEPART(HOUR, o.order_purchase_timestamp) AS hour_order_placed,
+        COUNT(o.order_id) AS orders_placed,
+        ROW_NUMBER() OVER(PARTITION BY p.product_category_name ORDER BY COUNT(o.order_id) DESC) as rn
+    FROM orders o
+    JOIN order_items oi ON o.order_id = oi.order_id
+    JOIN products p ON oi.product_id = p.product_id
+    WHERE p.product_category_name IS NOT NULL
+    GROUP BY p.product_category_name, DATEPART(HOUR, o.order_purchase_timestamp)
+) AS ranked_hours
+WHERE rn = 1;
+```
+
+---
+
+#### c. Find the top 5 product categories with the highest number of delayed orders.
+**Your Query:** Correct.
+```sql
+Select TOP 5
+    p.product_category_name,
+    COUNT(*) as delayedorders
+FROM order_items oi
+INNER JOIN products p on p.product_id=oi.product_id
+INNER JOIN orders o on o.order_id=oi.order_id
+WHERE o.order_delivered_customer_date > o.order_estimated_delivery_date AND o.order_delivered_customer_date IS NOT NULL
+GROUP BY p.product_category_name
+ORDER BY delayedorders DESC;
+```
+
+---
+
+#### d. What is the impact of product price on sales volume?
+**Your Query:** Correct.
+This query correctly generates the necessary data for offline analysis.
+```sql
+SELECT
+    p.product_id,
+    p.product_category_name,
+    COUNT(oi.order_item_id) AS units_sold,
+    AVG(oi.price) AS avg_price,
+    SUM(oi.price) AS total_sales
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+GROUP BY p.product_id, p.product_category_name
+ORDER BY total_sales DESC;
+```
+
+---
+
+#### e. Which products are most frequently bought together?
+**Your Query:** Incorrect (Finds category pairs, not product pairs, and is inefficient).
+**Corrected Query:**
+This query self-joins `order_items` to find pairs of products on the same order. `oi1.product_id < oi2.product_id` is a crucial condition to prevent counting the same pair twice (A,B and B,A) and pairing a product with itself.
+```sql
+SELECT TOP 1
+    p1.product_id AS product_1,
+    p2.product_id AS product_2,
+    COUNT(*) AS frequency
+FROM order_items oi1
+JOIN order_items oi2 ON oi1.order_id = oi2.order_id AND oi1.product_id < oi2.product_id
+JOIN products p1 ON oi1.product_id = p1.product_id
+JOIN products p2 ON oi2.product_id = p2.product_id
+GROUP BY p1.product_id, p2.product_id
+ORDER BY frequency DESC;
+```
+
+---
+
+#### f. Calculate the total revenue per product category
+**Your Query:** Correct.
+```sql
+SELECT
+    p.product_category_name,
+    SUM(oi.price) AS [Total Revenue per product category]
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+WHERE p.product_category_name IS NOT NULL
+GROUP BY p.product_category_name
+ORDER BY SUM(oi.price) DESC;
+```
+
+---
+
+#### g. Compute the average review score for each product category
+**Your Query:** Correct.
+```sql
+SELECT
+    p.product_category_name,
+    AVG(CAST(ore.review_score as float)) as AVGscore
+FROM products p
+INNER JOIN order_items oi on oi.product_id=p.product_id
+INNER JOIN orders o on o.order_id=oi.order_id
+INNER JOIN order_reviews ore on ore.order_id=o.order_id
+WHERE ore.review_score IS NOT NULL AND p.product_category_name IS NOT NULL
+GROUP BY p.product_category_name;
+```
+
+---
+
+#### h. Retrieve the top 5 products based on total sales revenue
+**Your Query:** Correct.
+```sql
+SELECT TOP 5
+    p.product_id,
+    p.product_category_name,
+    SUM(oi.price) AS [Total Sales Revenue]
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+WHERE p.product_category_name IS NOT NULL
+GROUP BY p.product_id, p.product_category_name
+ORDER BY [Total Sales Revenue] DESC;
+```
+
+***
+
+## Seller and Shipment Analysis
+
+---
+
+#### a. What is the return rate per seller?
+**Your Query:** Incorrect (Inefficient and calculates based on items, not distinct orders).
+**Corrected Query:**
+This query uses conditional aggregation (`CASE` statement) to count canceled and total orders for each seller in a single pass, which is much more efficient. The rate is based on distinct orders associated with a seller.
+```sql
+SELECT
+    oi.seller_id,
+    CAST(SUM(CASE WHEN o.order_status = 'canceled' THEN 1 ELSE 0 END) AS FLOAT) / COUNT(DISTINCT o.order_id) AS return_rate
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+GROUP BY oi.seller_id
+ORDER BY return_rate DESC;
+```
+
+---
+
+#### b. Which sellers sell the most expensive products on average?
+**Your Query:** Incorrect (Overly complex).
+**Corrected Query:**
+A simple `TOP 1 WITH TIES` is sufficient and efficient.
+```sql
+SELECT TOP 1 WITH TIES
+    s.seller_id,
+    AVG(oi.price) AS avg_product_price
+FROM sellers s
+JOIN order_items oi ON s.seller_id = oi.seller_id
+GROUP BY s.seller_id
+ORDER BY avg_product_price DESC;
+```
+
+---
+
+#### c. What is the profit margin per seller?
+**Your Query:** Correct (based on the assumption that profit = price - freight).
+```sql
+SELECT
+    oi.seller_id,
+    SUM(oi.price - oi.freight_value) AS profit_margin
+FROM order_items oi
+GROUP BY oi.seller_id
+ORDER BY profit_margin DESC;
+```
+
+---
+
+#### d. How do shipping costs impact order delays?
+**Your Query:** Correct, but can be combined (This is a duplicate of a question in the Order Analysis section).
+**Corrected Query:**
+Using a `CASE` statement within the `GROUP BY` clause is an effective way to get both results in one query.
+```sql
+SELECT
+    CASE
+        WHEN o.order_delivered_customer_date > o.order_estimated_delivery_date THEN 'Delayed'
+        ELSE 'On-Time'
+    END AS delivery_status,
+    AVG(oi.freight_value) AS avg_freight_value
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+WHERE o.order_delivered_customer_date IS NOT NULL
+GROUP BY
+    CASE
+        WHEN o.order_delivered_customer_date > o.order_estimated_delivery_date THEN 'Delayed'
+        ELSE 'On-Time'
+    END;
+```
+
+---
+
+#### e. What is the number of delayed shipments in 2017
+**Your Query:** Incorrect (It counts order items, not distinct orders).
+**Corrected Query:**
+This query defines a "delayed shipment" as an order that was handed to the carrier after the shipping limit date. `COUNT(DISTINCT o.order_id)` ensures each delayed order is only counted once, regardless of the number of items.
+```sql
+SELECT COUNT(DISTINCT o.order_id) AS delayed_shipments_2017
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+WHERE o.order_delivered_carrier_date > oi.shipping_limit_date
+      AND YEAR(o.order_purchase_timestamp) = 2017;
+```
+
+---
+
+#### f. What is the correlation between shipping cost and delivery speed?
+**Your Query:** Correct, but a duplicate of question 'd'.
+**Corrected Query:**
+(Same as the correction for 'd').
+```sql
+SELECT
+    CASE
+        WHEN o.order_delivered_customer_date > o.order_estimated_delivery_date THEN 'Delayed'
+        ELSE 'On-Time'
+    END AS delivery_status,
+    AVG(oi.freight_value) AS avg_freight_value
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+WHERE o.order_delivered_customer_date IS NOT NULL
+GROUP BY
+    CASE
+        WHEN o.order_delivered_customer_date > o.order_estimated_delivery_date THEN 'Delayed'
+        ELSE 'On-Time'
+    END;
+```
+
+---
+
+#### g. Sum the total freight cost for each seller
+**Your Query:** Correct.
+```sql
+SELECT
+    s.seller_id,
+    SUM(oi.freight_value) as total_freight_cost
+FROM order_items oi
+INNER JOIN sellers s on s.seller_id=oi.seller_id
+GROUP BY s.seller_id
+ORDER BY total_freight_cost DESC;
+```

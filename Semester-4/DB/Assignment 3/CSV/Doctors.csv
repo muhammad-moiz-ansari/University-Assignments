@@ -1,0 +1,11 @@
+doctor_id,name,specialization,availability_status
+201,Dr. Emily Carter,Cardiology,Available
+202,Dr. John Adams,Neurology,Unavailable
+203,Dr. Sarah Lee,Orthopedics,Available
+204,Dr. Michael Brown,Pediatrics,Available
+205,Dr. Laura Wilson,Oncology,Unavailable
+206,Dr. David Kim,Endocrinology,Available
+207,Dr. Anna Patel,Psychiatry,Available
+208,Dr. Robert Chen,Dermatology,Unavailable
+209,Dr. Maria Gomez,Gastroenterology,Available
+210,Dr. James Lee,Surgeon,Available
