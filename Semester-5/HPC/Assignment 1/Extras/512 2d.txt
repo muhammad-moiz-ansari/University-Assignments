@@ -1,0 +1,43 @@
+---------------------------- 512 2d ---------------------------- 
+
+
+23I-0523@HPC03:~/Asgn1$ nvcc mm_bench.cu -o mm && ./mm 512 2d
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+CPU Execution Time: 467.146759 ms
+Data Transfer Time (H2D): 0.314848 ms
+Blocks per grid: (32, 16)
+GPU Execution Time: 0.818688 ms
+Data Transfer Time (D2H): 0.467200 ms
+Total GPU Time (H2D + Kernel + D2H): 1.634720 ms
+----- CPU vs GPU Matrix VERIFICATION -----
+
+ALL RESULTS VERIFIED!
+-------------------------------------
+SIZE,512,MODE,2d,CPU,467.146759,H2D,0.314848,KERNEL,0.818688,D2H,0.467200,TOTAL_GPU,1.634720,VERIFIED,1
+23I-0523@HPC03:~/Asgn1$ nvcc mm_bench.cu -o mm && ./mm 512 2d
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+CPU Execution Time: 456.336395 ms
+Data Transfer Time (H2D): 0.295264 ms
+Blocks per grid: (32, 16)
+GPU Execution Time: 0.863712 ms
+Data Transfer Time (D2H): 0.467968 ms
+Total GPU Time (H2D + Kernel + D2H): 1.661472 ms
+----- CPU vs GPU Matrix VERIFICATION -----
+
+ALL RESULTS VERIFIED!
+-------------------------------------
+SIZE,512,MODE,2d,CPU,456.336395,H2D,0.295264,KERNEL,0.863712,D2H,0.467968,TOTAL_GPU,1.661472,VERIFIED,1
+23I-0523@HPC03:~/Asgn1$ nvcc mm_bench.cu -o mm && ./mm 512 2d
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+CPU Execution Time: 518.033386 ms
+Data Transfer Time (H2D): 0.345664 ms
+Blocks per grid: (32, 16)
+GPU Execution Time: 0.827776 ms
+Data Transfer Time (D2H): 0.489952 ms
+Total GPU Time (H2D + Kernel + D2H): 1.699872 ms
+----- CPU vs GPU Matrix VERIFICATION -----
+
+ALL RESULTS VERIFIED!
+-------------------------------------
+SIZE,512,MODE,2d,CPU,518.033386,H2D,0.345664,KERNEL,0.827776,D2H,0.489952,TOTAL_GPU,1.699872,VERIFIED,1
+23I-0523@HPC03:~/Asgn1$

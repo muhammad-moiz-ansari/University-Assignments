@@ -1,0 +1,43 @@
+---------------------------- 256 2d ---------------------------- 
+
+
+
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+CPU Execution Time: 40.250366 ms
+Data Transfer Time (H2D): 0.090816 ms
+Blocks per grid: (16, 8)
+GPU Execution Time: 0.255936 ms
+Data Transfer Time (D2H): 0.189920 ms
+Total GPU Time (H2D + Kernel + D2H): 0.571808 ms
+----- CPU vs GPU Matrix VERIFICATION -----
+
+ALL RESULTS VERIFIED!
+-------------------------------------
+SIZE,256,MODE,2d,CPU,40.250366,H2D,0.090816,KERNEL,0.255936,D2H,0.189920,TOTAL_GPU,0.571808,VERIFIED,1
+23I-0523@HPC03:~/Asgn1$ nvcc mm_bench.cu -o mm && ./mm 256 2d
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+CPU Execution Time: 45.391872 ms
+Data Transfer Time (H2D): 0.094816 ms
+Blocks per grid: (16, 8)
+GPU Execution Time: 0.240608 ms
+Data Transfer Time (D2H): 0.142912 ms
+Total GPU Time (H2D + Kernel + D2H): 0.512864 ms
+----- CPU vs GPU Matrix VERIFICATION -----
+
+ALL RESULTS VERIFIED!
+-------------------------------------
+SIZE,256,MODE,2d,CPU,45.391872,H2D,0.094816,KERNEL,0.240608,D2H,0.142912,TOTAL_GPU,0.512864,VERIFIED,1
+23I-0523@HPC03:~/Asgn1$ nvcc mm_bench.cu -o mm && ./mm 256 2d
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+CPU Execution Time: 39.994370 ms
+Data Transfer Time (H2D): 0.089984 ms
+Blocks per grid: (16, 8)
+GPU Execution Time: 0.197376 ms
+Data Transfer Time (D2H): 0.127616 ms
+Total GPU Time (H2D + Kernel + D2H): 0.448416 ms
+----- CPU vs GPU Matrix VERIFICATION -----
+
+ALL RESULTS VERIFIED!
+-------------------------------------
+SIZE,256,MODE,2d,CPU,39.994370,H2D,0.089984,KERNEL,0.197376,D2H,0.127616,TOTAL_GPU,0.448416,VERIFIED,1
+23I-0523@HPC03:~/Asgn1$

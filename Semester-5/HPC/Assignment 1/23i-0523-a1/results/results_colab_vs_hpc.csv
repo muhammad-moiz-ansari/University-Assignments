@@ -1,0 +1,5 @@
+Size,Colab T4 Kernel (ms),Lab GPU Kernel (ms),Faster
+256,0.2687,0.2081,Lab
+512,1.03545,0.6033,Lab
+1024,7.07845,3.8305,Lab
+2048,53.95435,41.6088,Lab

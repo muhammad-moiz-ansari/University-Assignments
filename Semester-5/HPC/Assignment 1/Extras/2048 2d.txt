@@ -1,0 +1,44 @@
+---------------------------- 2048 2d ---------------------------- 
+
+
+
+23I-0523@HPC03:~/Asgn1$ nvcc mm_bench.cu -o mm && ./mm 2048 2d
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+CPU Execution Time: 56165.718750 ms
+Data Transfer Time (H2D): 3.549920 ms
+Blocks per grid: (128, 64)
+GPU Execution Time: 39.766945 ms
+Data Transfer Time (D2H): 5.539840 ms
+Total GPU Time (H2D + Kernel + D2H): 48.896545 ms
+----- CPU vs GPU Matrix VERIFICATION -----
+
+ALL RESULTS VERIFIED!
+-------------------------------------
+SIZE,2048,MODE,2d,CPU,56165.718750,H2D,3.549920,KERNEL,39.766945,D2H,5.539840,TOTAL_GPU,48.896545,VERIFIED,1
+23I-0523@HPC03:~/Asgn1$ nvcc mm_bench.cu -o mm && ./mm 2048 2d
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+CPU Execution Time: 104001.343750 ms
+Data Transfer Time (H2D): 3.526528 ms
+Blocks per grid: (128, 64)
+GPU Execution Time: 41.850559 ms
+Data Transfer Time (D2H): 5.647616 ms
+Total GPU Time (H2D + Kernel + D2H): 51.063358 ms
+----- CPU vs GPU Matrix VERIFICATION -----
+
+ALL RESULTS VERIFIED!
+-------------------------------------
+SIZE,2048,MODE,2d,CPU,104001.343750,H2D,3.526528,KERNEL,41.850559,D2H,5.647616,TOTAL_GPU,51.063358,VERIFIED,1
+23I-0523@HPC03:~/Asgn1$ nvcc mm_bench.cu -o mm && ./mm 2048 2d
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+CPU Execution Time: 46741.906250 ms
+Data Transfer Time (H2D): 3.917920 ms
+Blocks per grid: (128, 64)
+GPU Execution Time: 42.136929 ms
+Data Transfer Time (D2H): 5.720576 ms
+Total GPU Time (H2D + Kernel + D2H): 51.826847 ms
+----- CPU vs GPU Matrix VERIFICATION -----
+
+ALL RESULTS VERIFIED!
+-------------------------------------
+SIZE,2048,MODE,2d,CPU,46741.906250,H2D,3.917920,KERNEL,42.136929,D2H,5.720576,TOTAL_GPU,51.826847,VERIFIED,1
+23I-0523@HPC03:~/Asgn1$

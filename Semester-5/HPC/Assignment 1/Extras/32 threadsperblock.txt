@@ -1,0 +1,56 @@
+32 threadsperblock
+
+
+23I-0523@HPC03:~/Asgn1$ nvcc mm_bench.cu -o mm && ./mm 2048 1d
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+CPU Execution Time: 83804.007812 ms
+Data Transfer Time (H2D): 3.801568 ms
+Blocks per grid: 131072
+GPU Execution Time: 42.004288 ms
+Data Transfer Time (D2H): 5.736576 ms
+Total GPU Time (H2D + Kernel + D2H): 51.595650 ms
+----- CPU vs GPU Matrix VERIFICATION -----
+
+ALL RESULTS VERIFIED!
+-------------------------------------
+SIZE,2048,MODE,1d,CPU,83804.007812,H2D,3.801568,KERNEL,42.004288,D2H,5.736576,TOTAL_GPU,51.595650,VERIFIED,1
+23I-0523@HPC03:~/Asgn1$ nvcc mm_bench.cu -o mm && ./mm 1024 1d
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+CPU Execution Time: 3878.102051 ms
+Data Transfer Time (H2D): 0.932576 ms
+Blocks per grid: 32768
+GPU Execution Time: 2.165760 ms
+Data Transfer Time (D2H): 1.493888 ms
+Total GPU Time (H2D + Kernel + D2H): 4.627072 ms
+----- CPU vs GPU Matrix VERIFICATION -----
+
+ALL RESULTS VERIFIED!
+-------------------------------------
+SIZE,1024,MODE,1d,CPU,3878.102051,H2D,0.932576,KERNEL,2.165760,D2H,1.493888,TOTAL_GPU,4.627072,VERIFIED,1
+23I-0523@HPC03:~/Asgn1$ nvcc mm_bench.cu -o mm && ./mm 512 1d
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+CPU Execution Time: 455.289856 ms
+Data Transfer Time (H2D): 0.301248 ms
+Blocks per grid: 8192
+GPU Execution Time: 0.434272 ms
+Data Transfer Time (D2H): 0.503296 ms
+Total GPU Time (H2D + Kernel + D2H): 1.271584 ms
+----- CPU vs GPU Matrix VERIFICATION -----
+
+ALL RESULTS VERIFIED!
+-------------------------------------
+SIZE,512,MODE,1d,CPU,455.289856,H2D,0.301248,KERNEL,0.434272,D2H,0.503296,TOTAL_GPU,1.271584,VERIFIED,1
+23I-0523@HPC03:~/Asgn1$ nvcc mm_bench.cu -o mm && ./mm 256 1d
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+CPU Execution Time: 44.530689 ms
+Data Transfer Time (H2D): 0.097920 ms
+Blocks per grid: 2048
+GPU Execution Time: 0.179264 ms
+Data Transfer Time (D2H): 0.177056 ms
+Total GPU Time (H2D + Kernel + D2H): 0.501600 ms
+----- CPU vs GPU Matrix VERIFICATION -----
+
+ALL RESULTS VERIFIED!
+-------------------------------------
+SIZE,256,MODE,1d,CPU,44.530689,H2D,0.097920,KERNEL,0.179264,D2H,0.177056,TOTAL_GPU,0.501600,VERIFIED,1
+23I-0523@HPC03:~/Asgn1$

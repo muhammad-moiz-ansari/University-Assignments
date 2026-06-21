@@ -1,0 +1,17 @@
+---------------------------- 2048 1d ---------------------------- 
+
+
+
+23I-0523@HPC03:~/Asgn1$ nvcc mm_bench.cu -o mm && ./mm 2048 1d
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+CPU Execution Time: 59423.750000 ms
+Data Transfer Time (H2D): 4.205312 ms
+Blocks per grid: 2048
+GPU Execution Time: 0.152960 ms
+Data Transfer Time (D2H): 5.983456 ms
+Total GPU Time (H2D + Kernel + D2H): 10.380800 ms
+CUDA launch error: invalid configuration argument
+----- CPU vs GPU Matrix VERIFICATION -----
+
+
+
