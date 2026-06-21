@@ -1,0 +1,15 @@
+-- Use Forms
+
+--CREATE TABLE Users(
+--	userid INT PRIMARY KEY NOT NULL,
+--	name VARCHAR(100) NOT NULL,
+--	username VARCHAR(50) UNIQUE NOT NULL,
+--	password VARCHAR(20) NOT NULL
+--);
+
+
+SELECT * FROM Users
+
+SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Users';
+
+DELETE FROM Users WHERE userid = 3

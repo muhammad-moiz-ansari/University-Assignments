@@ -1,0 +1,11 @@
+doctor_id,name,specialization,availability_status,missed_count
+,Dr. Emily Carter,Cardiology,Available,
+,Dr. John Adams,Neurology,Unavailable,
+,Dr. Sarah Lee,Orthopedics,Available,
+,Dr. Michael Brown,Pediatrics,Available,
+,Dr. Laura Wilson,Oncology,Unavailable,
+,Dr. David Kim,Endocrinology,Available,
+,Dr. Anna Patel,Psychiatry,Available,
+,Dr. Robert Chen,Dermatology,Unavailable,
+,Dr. Maria Gomez,Gastroenterology,Available,
+,Dr. James Lee,Surgeon,Available,
