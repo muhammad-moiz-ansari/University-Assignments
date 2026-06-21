@@ -1,0 +1,27 @@
+.386
+.model flat, stdcall
+.stack 4096
+ExitProcess Proto, dwExitCode:dword
+
+GetStdHandle PROTO, nStdHandle:dword
+WriteConsoleA PROTO, a1: Dword, a2: ptr Byte, a3: Dword, a4: ptr Dword, a5: Dword
+ReadConsoleA PROTO, a1: Dword, a2: ptr Byte, a3: Dword, a4: ptr Dword, a5: Dword
+
+.DATA
+	defstr db "Hello World! ", 0
+	num db 7
+	x dd 0
+
+.CODE
+main PROC
+	;Printing Output;
+	Invoke getstdhandle, -11
+	Invoke WriteConsoleA, eax, offset defstr, lengthof defstr, offset x, 0
+
+	;Taking Input;
+	Invoke getstdhandle, -10
+	Invoke ReadConsoleA, eax, offset num, lengthof num, offset x, 0
+
+Invoke ExitProcess, 0
+main Endp
+End main

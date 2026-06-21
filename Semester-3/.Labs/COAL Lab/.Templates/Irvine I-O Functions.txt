@@ -1,0 +1,72 @@
+For printing integer:
+	;mov eax, 0
+	movzx eax, [ebp]	
+	call WriteInt (for signed value)
+	;call WriteDec (for unsigned value)
+	call CrLf
+
+
+For reading integer:
+	mov eax, 0
+	call ReadInt
+	mov variable, ax
+
+
+For printing string
+	mov edx, offset string
+	call WriteString
+	call CrLf
+
+
+----- For printing array -----
+mov ecx, arrs
+mov edi, 0
+L1:
+	movzx eax, arr[edi]
+	call WriteInt
+
+	call CrLf
+
+	inc edi
+Loop L1
+
+----- For reading string -----
+mov edx, offset string
+mov ecx, lengthof string	; max limit
+call ReadString
+
+
+
+Display Proc
+	mov eax, 0
+	mov edi, offset arr
+
+	mov edx, offset disp1
+	Call WriteString
+
+	Call isEmpty
+	cmp dx, 1
+	je itsempty
+	mov eax, 0
+
+		PrintL:
+			mov ax, [edi]
+			Call WriteInt
+
+			cmp edi, ebp
+			je Exitploop
+
+			mov edx, offset disp2
+			Call WriteString
+
+			add edi, 2
+			jmp PrintL
+		Exitploop:
+
+	itsempty:
+		mov edx, offset disp3
+		Call WriteString
+		Call CrLf
+
+	ret
+Display Endp

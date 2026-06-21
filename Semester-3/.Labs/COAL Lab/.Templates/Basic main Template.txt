@@ -1,0 +1,15 @@
+.386
+.model flat, stdcall
+.stack 4096
+ExitProcess Proto, dwExitCode:dword
+
+.DATA
+	
+
+.CODE
+main Proc
+	
+
+Invoke EXitProcess, 0
+main Endp
+End main

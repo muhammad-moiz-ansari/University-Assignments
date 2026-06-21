@@ -1,0 +1,15 @@
+include irvine32.inc
+include macros.inc
+
+.DATA
+	
+
+.CODE
+main Proc
+
+
+
+
+exit
+main Endp
+End Main
