@@ -1,0 +1,129 @@
+!!!!!!!!! Router Interface Setup
+ en
+ config t
+ interface fa0/0
+ !ip address [IP] [Subnet Mask]
+ ip address 192.168.1.10 255.255.255.0
+ 
+!!!!!!!!!     1. RIP (Routing Information Protocol)
+ ! (First assign IPs to router interfaces)
+ enable
+ configure terminal
+ router rip
+  version 2
+  no auto-summary             ! Critical for VLSM support
+  network [Classful_Network]  ! e.g., network 192.168.10.0
+ exit
+
+
+!!!!!!!!!     2. EIGRP (Enhanced Interior Gateway Routing Protocol)
+ router eigrp [AS_Number]    ! AS Number must match neighbors  ! E.g. router eigrp 10
+  no auto-summary
+  ! Advertise networks
+  network [Network_ID] [Wildcard_Mask]
+  ! Example: network 192.168.10.0 0.0.0.255
+ exit
+
+
+!!!!!!!!!     3. OSPF (Open Shortest Path First)
+ router ospf [Process_ID]
+  ! Network command formats:
+  ! network [IP_Address] [Wildcard] area [Area_ID]
+
+  ! Example (Place interface in Area 0):
+  network 192.168.10.0 0.0.0.255 area 0
+
+  ! Example (Default Route Injection):
+  default-information originate always
+ exit
+
+
+!!!!!!!!!     4. BGP (Border Gateway Protocol)
+ router bgp [Your_AS_Number]
+  bgp router-id [x.x.x.x]           ! just for debugging
+
+  ! Define Neighbor (Pointer to the OTHER router's IP)...For ALL Neighboring Routers
+  neighbor [Neighbor_gateway_IP] remote-as [Neighbor_AS_Num]
+
+  ! Advertise Your Networks (Must exist in routing table exactly)...For ALL Neighboring NETWORKS 
+  network [Your_Network_ID] mask [Subnet_Mask]
+ exit
+ 
+ Example:
+ router bgp 1
+ bgp router-id 1.1.1.1
+  neighbor 10.0.0.2 remote-as 100
+  neighbor 20.0.0.2 remote-as 200
+  neighbor 30.0.0.2 remote-as 300
+  neighbor 40.0.0.2 remote-as 400
+  
+  network 10.0.0.0 mask 255.0.0.0
+  network 20.0.0.0 mask 255.0.0.0
+  network 30.0.0.0 mask 255.0.0.0
+  network 40.0.0.0 mask 255.0.0.0
+ exit
+
+
+!!!!!!!!!     5. NAT (Network Address Translation)
+ 1. Assign IPs to PCs and router interfaces.
+ 2. Apply these on the router translating NAT (Near to the PCs):
+ interface FastEthernet0/0      ! Your LAN / Server connection
+  ip nat inside
+  exit
+ interface Serial0/0/0          ! Your Internet / WAN connection
+  ip nat outside
+  exit
+ 3. Do this for every private IP and give different public IP respectively from the public network
+ en
+ config t
+ ip nat inside source static [private_ip] [public_ip]
+ ! Example: Map internal Server (192.168.10.5) to Public IP (50.50.50.5)
+ ip nat inside source static 192.168.10.5 50.50.50.5
+ 4. Do static routing (When using fake address like 200.200.200.0, write the new fake address as estination_network)
+ ip route [destination_network] [subnet_mask] [next_hop_ip]
+ E.g. ip route 200.0.0.0 255.0.0.0 192.168.1.2
+
+
+!!!!!!!!!     6. DHCP (Dynamic Host Configuration Protocol)
+ Dynamic Allocation (Standard Pool)
+ 1. Assign IPs to DHCP server and router interface (NOT to PCs).
+ 2. Assign DHCP pools for every network.
+ 3. Then, do this for each network having PC:
+ ! DHCP Relay (Helper Address)
+ ! Used on Routers that don't have the server, pointing to the server.
+ interface FastEthernet0/0      ! Interface facing the Client PC
+  ip helper-address [IP_of_DHCP_Server]
+  E.g. ip helper-address 192.168.1.1
+
+
+!!!!!!!!!     7. VLANs (Virtual LANs)
+ On Switch:
+ ! Create VLAN
+ vlan 10
+ name Sales
+exit
+
+ ! Assign Port to VLAN (Access)
+ interface FastEthernet0/1
+  switchport mode access
+  switchport access vlan 10
+
+ ! Configure Trunk (Connection to Router/Switch)
+ interface FastEthernet0/24
+  switchport mode trunk
+
+
+!!!!!!!!!     8. ACL (Access Control Lists)
+ ! Apply these on the router near destination mostly
+ en
+ config t
+ ACL_No: 1-99 (Standard ACL)
+ access-list [ACL_No] deny host [Bad_PC_IP]
+ access-list [ACL_No] deny [Network address] [Wildcard mask]
+
+ access-list [ACL_No] permit any        ! Essential!
+
+ ! Apply to interface
+ interface FastEthernet0/0
+  ip access-group [ACL_No] in/out
+ (in/out means going in/out to this interface)
