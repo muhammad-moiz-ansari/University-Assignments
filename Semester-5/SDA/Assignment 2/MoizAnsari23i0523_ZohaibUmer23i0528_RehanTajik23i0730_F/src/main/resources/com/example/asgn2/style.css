@@ -1,0 +1,46 @@
+.root {
+    -fx-background-color: #ffeef2;   /* very light pink background */
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 12px;
+}
+
+/* Buttons */
+.button {
+    -fx-background-color: #e57399;   /* soft pink */
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 5;
+    -fx-padding: 6 12;
+}
+
+.button:hover {
+    -fx-background-color: #d65a84;   /* darker pink on hover */
+}
+
+/* Text fields */
+.text-field {
+    -fx-background-color: #fff5f7;   /* light pinkish white */
+    -fx-border-color: #f5b6c6;       /* soft pink border */
+    -fx-border-radius: 4;
+}
+
+/* Labels in medicine boxes */
+.box_label1, #medicineFlowPane .label {
+    -fx-font-size: 11px;
+    -fx-alignment: center;
+    -fx-border-width: 0.5px;
+    -fx-border-color: #d68ca5;       /* muted pink border */
+    -fx-border-radius: 2px;
+    -fx-padding: 3px 3px 3px 3px;
+    -fx-background-color: #fff0f5;   /* very light lavender pink */
+}
+
+.box_label2 {
+    -fx-font-size: 12px;
+    -fx-alignment: center;
+    -fx-border-width: 0.5px;
+    -fx-border-color: #d68ca5;
+    -fx-border-radius: 2px;
+    -fx-padding: 3px 3px 3px 3px;
+    -fx-background-color: #ffe6ee;   /* slightly deeper pink */
+}
