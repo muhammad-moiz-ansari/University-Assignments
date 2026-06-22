@@ -1,0 +1,49 @@
+1. Remove Duplicates
+2. Null Values
+3. Date Datatype
+4. Unicode encodings
+
+
+NORMALIZATION
+
+p = kickstarters_2017[kickstarters_2017['pledged'] > 0]['pledged']
+x = pd.Series(stats.boxcox(p)[0],name='pledged', index=p.index)
+ax = sns.histplot(x, kde=True)
+ax.set_title("Normalized data")
+plt.show()
+
+SCALING
+
+from sklearn.preprocessing import MinMaxScaler
+scaler = MinMaxScaler()
+scaler.fit_transform(data[['release_year']])
+
+DATE INCONSISTENCIES
+
+earthquakes.loc[3378,'Date'] = '02/23/1975'
+earthquakes.loc[7512,'Date'] = '04/28/1985'
+earthquakes.loc[20650, 'Date'] = '03/13/2011'
+earthquakes['date_parsed'] = pd.to_datetime(earthquakes['Date'], format='%m/%d/%Y')
+
+import datetime as dt
+# try to get the day of the month from the date column
+day_of_month_earthquakes = earthquakes['date_parsed'].dt.day
+
+CHARACTER ENCODINGS
+
+import charset_normalizer
+
+with open("../input/fatal-police-shootings-in-the-us/PoliceKillingsUS.csv",'rb') as rd:
+    result = charset_normalizer.detect(rd.read(109000))
+print(result)
+police_killings = pd.read_csv("../input/fatal-police-shootings-in-the-us/PoliceKillingsUS.csv", encoding = 'windows-1250')
+police_killings.to_csv("my_file.csv")
+
+INCONSISTENT DATA ENTRY
+
+for i in professors[professors['Country'] == 'usofa'].index:
+    professors.loc[i,'Country'] = 'usa'
+
+x = professors['Country'].unique()
+x.sort()
+x

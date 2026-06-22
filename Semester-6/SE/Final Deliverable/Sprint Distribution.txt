@@ -1,0 +1,50 @@
+Sprint 1 - User Authentication & Disaster Reporting
+US-01  Register User
+US-02  Manage Disaster Records
+ US-03    Add Disaster Record
+ US-04    Edit Disaster Record
+ US-05    Delete Disaster Record
+US-06  Report Disaster
+US-07  Send Notification/Alert
+ US-08    Broadcast Alert to Stakeholders
+ US-09    Send Notification
+US-10  View Disaster Alerts
+
+----------------------------------------------------------------
+
+Sprint 2 - Resource Management & Emergency Response
+US-11  Manage Resources  (Admin)
+  US-12    Add Resource  (Admin)
+  US-13    Edit Resource  (Admin)
+  US-14    Delete Resource  (Admin)
+  US-15    Allocate Resource to NGO/Rescue Team  (Admin)
+US-16  View Allocated Resources  (NGO, Rescue Team)
+US-17  Request Additional Resources  (NGO, Rescue Team)
+US-18  Call for Emergency  (Citizen)
+
+----------------------------------------------------------------
+
+Sprint 3 - Coordination, Monitoring & System Completion
+US-19  Assign NGO  (Admin)
+  US-20    View Available NGOs  (Admin)
+  US-21    Assign NGO to Disaster  (Admin)
+US-22  Assign Rescue Team  (Admin)
+  US-23    View Available Rescue Teams  (Admin)
+  US-24    Assign Team to Disaster  (Admin)
+US-25  Track Rescue Team  (Admin)
+  US-26    View Active Teams Dashboard  (Admin)
+  US-27    View Team Location & Status  (Admin)
+US-28  Update Mission Status  (NGO, Rescue Team)
+  US-29    Mark Mission In Progress  (NGO, Rescue Team)
+  US-30    Mark Mission Completed  (NGO, Rescue Team)
+US-31  Generate Disaster Report  (Admin)
+  US-32    Set Report Parameters (date, region, type)  (Admin)
+  US-33    Export/Download Report  (Admin)
+US-34  Give Feedback  (Citizen, NGO, Rescue Team)
+US-35  Review Feedback (Admin)
+
+Structured Specifications:
+US-19  Assign NGO, Rescue Team  (Admin)
+US-25  Track Rescue Team  (Admin)
+US-31  Generate Disaster Report  (Admin)
+US-34  Give Feedback  (Citizen, NGO, Rescue Team)

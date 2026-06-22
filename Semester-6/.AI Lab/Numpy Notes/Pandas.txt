@@ -1,0 +1,83 @@
+______________
+|            |
+|   DAY 1    |
+|            |
+--------------
+
+data = pd.read_csv('matches.csv')
+data.head(50)
+data.tail()
+data.info()
+data.describe()
+data.shape
+data['id']
+data[['id', 'winner']]                				# fetches columns
+data.iloc[[1,3,5]]                  		  		# fetches rows
+data.iloc[:,[1,2,4]]                 		 		# fetches both rows and columns
+
+______________
+|            |
+|   DAY 2    |
+|            |
+--------------
+
+mask = data['id'] > 5
+mask2 = data['id'] < 100   		           		# where clause as in SQL
+data[mask & mask2]
+
+data['city'].value_counts()         				# group by clause as in SQL
+data['city'].value_counts().plot(kind='bar')		  	# visualization (categorical against numerical)
+data['wins'].plot(kind='hist')  				# visualization (numerical against range)
+
+series = data['winner'].value_counts()
+series.index							# returns list of indices
+series.values							# returns list of values
+series['Sunrisers Hyderabad']					# returns the value against index
+data['team1'].value_counts() + data['team2'].value_counts()     # series can be performed operations provided their indexes is same
+data['team1'].value_counts().sort_values(ascending=False)       # sort values of series in Default Asc and By enforced Desc
+data.sort_values('city', ascending=False, inplace = True)	# sort values of dataframe in default Asc and By enforced Desc and inplace permanent changes to df
+data.sort_values(['city','date'], ascending=[False,True])	# sort values of dataframe on more than one column basis
+data.drop_duplicates(['city', 'season'], keep='first/last')
+
+______________
+|            |
+|   DAY 3    |
+|            |
+--------------
+
+d1 = data.groupby('city')
+len(d1)                                                         	# Number of cities
+d1.size()								# count in each group
+d1.first()/.last()							# returns first/last instance of each group
+d1.groups								# indexes(id) of data in each group
+d1.get_group('Alergy')							# returns data of specified group value
+d1.sum()/.count()/.mean() OR d1['col'].sum()				# numeric cols sum/count/mean
+d1['batsman'].isin(bats_list) 						# returns t/f based on the LIST provided (mask)
+d1 = deli.merge(data,how='left',left_on='match_id',right_on='id') 	# joins two different datasets
+food.pivot_table(index=['City','Gender'], columns=['Item','Area'], values='spenditure', aggfunc='sum/count/mean')
+food.corr()								# numerical data correlation as pivot
+food.rename({'city': 'place', 'date': 'DOB'})
+match.set_index('id')
+match.reset_index()   							# inverse of set index
+data.dropna(subset='col1',how='any/all', axis=0/1)
+data['col'].fillna(30)
+data['col'].fillna(method='bfill/ffill')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
