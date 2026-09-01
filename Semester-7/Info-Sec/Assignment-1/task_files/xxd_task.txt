@@ -1,0 +1,1 @@
+HDR-CS3002-2026|Offset inspection sample|7A91C4E8|Packet:ALLOW|User:analyst|Token:Q7M2|Checksum:98AF21|Audit:complete|flag{xxd_offset_master_2026}|EOF

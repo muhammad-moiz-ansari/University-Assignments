@@ -1,0 +1,12 @@
+# CS-3002 account-audit dataset
+# Review note: examine account ownership and access controls carefully.
+record_id: 1047
+full_name: Areeba Khan
+username: areeba.khan
+department: School of Computing
+account_status: active
+password: NUCES-Lab@2026
+role: security_trainee
+last_login: 2026-08-29
+comment: The user requested that multi-factor authentication be enabled.
+failed_logins: 2
